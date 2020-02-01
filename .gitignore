@@ -1,1 +1,5 @@
+# Mac OS file
 .DS_Store
+
+# Python byte code files
+*.pyc
