@@ -13,12 +13,13 @@ class Database():
         pass
 
     """
-    # Creates a new table
+    # Creates a new table (user end)
     :param name: string         #Table name
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
     def create_table(self, name, num_columns, key):
+        ## key = primary key (unique)
         table = Table(name, num_columns, key)
         return table
 
