@@ -1,5 +1,6 @@
 from template.table import Table, Record
 from template.index import Index
+from time import time
 
 
 class Query:
@@ -24,11 +25,15 @@ class Query:
     """
 
     def insert(self, *columns):
-        schema_encoding = '0' * self.table.num_columns
+        schema_encoding = int('0' * self.table.num_columns)
+        timestamp = int(time())
+        self.table.insert(schema_encoding, timestamp, *columns)
         pass
 
     """
     # Read a record with specified key
+    # param key: The key of the record to be update (column in the table)
+    # colum: boolean object with values for the specified columns and None for the rest
     """
 
     def select(self, key, query_columns):
@@ -39,6 +44,7 @@ class Query:
     """
 
     def update(self, key, *columns):
+        # self.table.update(key, *columns)
         pass
 
     """
