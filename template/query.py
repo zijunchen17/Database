@@ -18,7 +18,7 @@ class Query:
     """
 
     def delete(self, key):
-        pass
+        self.table.delete(key)
 
     """
     # Insert a record with specified columns
@@ -37,14 +37,16 @@ class Query:
     """
 
     def select(self, key, query_columns):
-        pass
+
+        return self.table.select(key, query_columns)
 
     """
     # Update a record with specified key and columns
     """
 
     def update(self, key, *columns):
-        # self.table.update(key, *columns)
+        timestamp = int(time())
+        self.table.update(key, timestamp, *columns)
         pass
 
     """
