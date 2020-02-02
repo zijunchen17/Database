@@ -225,6 +225,25 @@ class Table:
         else:
             print('Key {} does not exist!'.format(key))
 
+    def sum(self, start_range, end_range, aggregate_column_index):
+
+        column_value = []
+
+        query_columns = [0] * self.num_columns
+        query_columns[aggregate_column_index] = 1
+
+        for key in range(start_range, end_range):
+
+            if key in self.key_directory:
+                record_list = self.select(key, query_columns)
+                record = record_list[0]
+                value = record.columns[0]
+                column_value.append(value)
+
+            else:
+                print('Key {} does not exist!'.format(key))
+
+        return sum(column_value)
 
     def __merge(self):
         pass
