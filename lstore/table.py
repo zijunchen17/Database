@@ -1,6 +1,6 @@
-from template.page import *
+from lstore.page import *
 from time import time
-from template.config import *
+from lstore.config import *
 import math
 import copy
 
@@ -153,8 +153,8 @@ class Table:
 
     ## update latest values 
     def __update_column(self, base_column, tail_column):
-        ## create boolean list to check which column needs to be updated
-        b = [x % SPECIAL_NULL_VALUE != 0 for x in tail_column ]
+        # create boolean list to check which column needs to be updated
+        b = [x != SPECIAL_NULL_VALUE for x in tail_column]
         for i,v in enumerate(b):
             if v:
                 base_column[i] = tail_column[i]
@@ -183,13 +183,14 @@ class Table:
     # def select(self, key, query_columns):
     #     if key in self.key_directory:
 
-    #         records = []
+    #         # records = []
     #         cur_rid = self.key_directory[key]
     #         row = self._get_row(cur_rid)
     #         page_list = self.page_directory[cur_rid]
     #         page_list = page_list[SCHEMA_ENCODING_COLUMN+1:]
     #         page_list = [p for i,p in enumerate(page_list) if query_columns[i] == 1]
-    #         records.append(Record(rid, key, [page.read(row) for page in page_list]))
+    #         cur_columns = [page.read(row) for page in page_list]
+    #         return [Record(key, cur_rid, cur_columns)]
             
 
     #     else:
@@ -232,7 +233,7 @@ class Table:
         query_columns = [0] * self.num_columns
         query_columns[aggregate_column_index] = 1
 
-        for key in range(start_range, end_range):
+        for key in range(start_range, end_range+1):
 
             if key in self.key_directory:
                 record_list = self.select(key, query_columns)
@@ -240,11 +241,12 @@ class Table:
                 value = record.columns[0]
                 column_value.append(value)
 
-            else:
-                print('Key {} does not exist!'.format(key))
+            # else:
+                # print('Key {} does not exist!'.format(key))
 
         return sum(column_value)
 
     def __merge(self):
         pass
+
 
