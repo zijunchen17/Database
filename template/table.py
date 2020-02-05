@@ -93,7 +93,7 @@ class Table:
         # Create schema encoding and write to columns.
         tail_schema = ''
         for i, col in enumerate(columns):
-            if col:
+            if col is not None:
                 tail_schema += '1'
                 self.tail_pages[i+4][-1].write(col)
             else:
