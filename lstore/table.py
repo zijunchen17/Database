@@ -64,32 +64,6 @@ class Table:
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
 
         self.base_rid += 1
-        '''
-        if not self.base_pages[0][-1].has_capacity():
-            for page_list in self.base_pages:
-                page_list.append(Page())
-        
-        
-        ## return the index of row, starting from 0 to 511 (512 rows in total)
-        rows = self.base_pages[0][-1].num_records
-        rid = (rid << self.bit_shift) + rows
-
-        ## insert values into each column (or each page)
-        indirection_page = self.base_pages[INDIRECTION_COLUMN][-1].write(0)
-        self.base_pages[RID_COLUMN][-1].write(rid)
-        self.base_pages[TIMESTAMP_COLUMN][-1].write(timestamp)
-        self.base_pages[SCHEMA_ENCODING_COLUMN][-1].write(schema_encoding)
-        for i, column in enumerate(columns):
-            self.base_pages[i+4][-1].write(column)
-        '''
-        for page_list in self.base_pages:
-            pages.append(page_list[-1])
-
-        ## map each rid to specific pages
-        self.page_directory[rid] = pages
-        self.key_directory[pages[self.key_column].read(rows)] = rid
-
-        self.base_rid += 1
 
     def update(self, key, timestamp, *columns):
         pages = []

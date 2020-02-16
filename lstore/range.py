@@ -22,8 +22,8 @@ class Page_Range:
         return rid // (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page(self):
-        if not self.base_pages[0][-1].has_capacity():
-            self.__add_base_page():
+        if len(self.base_pages[0]) < BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
+            self.__add_base_page()
 
         return [column[-1] for column in self.base_pages]
     
