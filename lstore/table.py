@@ -33,7 +33,8 @@ class Table:
         self.all_columns = num_columns + 4
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
-
+        
+        self.page_ranges = []
         self.page_directory = {}
         self.key_directory = {}
         
