@@ -6,8 +6,8 @@ class Page_Range:
 
     def __init__(self):
 
-        self.base_pages = [ [[Page()] for _ in range(self.all_columns)] ] * BASE_PAGES_PER_RANGE
-        self.tail_pages = [ [[Page()] for _ in range(self.all_columns)] ]
+        self.base_pages = [[Page()] for _ in range(self.all_columns)] * BASE_PAGES_PER_RANGE
+        self.tail_pages = [[Page()] for _ in range(self.all_columns)]
         
         def getBasePageIndex(self, rid):
 
