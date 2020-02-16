@@ -29,6 +29,7 @@ class Page:
             self.data[self.__pos : self.__pos + self.record_size] = b_value
             self.num_records += 1
         
+        
         #pass
 
     def read(self, row):
