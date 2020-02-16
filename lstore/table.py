@@ -34,7 +34,7 @@ class Table:
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = [Page_Range()]
+        self.page_ranges = [Page_Range(self.all_columns)]
         self.page_directory = {}
         self.key_directory = {}
 
@@ -45,10 +45,31 @@ class Table:
         rid = self.base_rid
         pages = []
 
+        if not page_ranges[-1].has_capacity():
+            self.page_ranges.append(Page_Range(self.all_columns))
+        
+        base_page = self.page_ranges[-1].get_last_base_page()
+
+        physical_page_offset = rid % (PAGE_SIZE // RECORD_SIZE)
+
+        base_page[INDIRECTION_COLUMN].write(0)
+        base_page[RID_COLUMN].write(rid)
+        base_page[TIMESTAMP_COLUMN].write(timestamp)
+        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
+
+        for i, column in enumerate(columns)
+            self.base_pages[i+4].write(column)
+        
+        self.page_directory[rid] = base_page
+        self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
+
+        self.base_rid += 1
+        '''
         if not self.base_pages[0][-1].has_capacity():
             for page_list in self.base_pages:
                 page_list.append(Page())
-
+        
+        
         ## return the index of row, starting from 0 to 511 (512 rows in total)
         rows = self.base_pages[0][-1].num_records
         rid = (rid << self.bit_shift) + rows
@@ -60,7 +81,7 @@ class Table:
         self.base_pages[SCHEMA_ENCODING_COLUMN][-1].write(schema_encoding)
         for i, column in enumerate(columns):
             self.base_pages[i+4][-1].write(column)
-
+        '''
         for page_list in self.base_pages:
             pages.append(page_list[-1])
 
