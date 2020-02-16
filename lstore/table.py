@@ -34,12 +34,9 @@ class Table:
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = []
+        self.page_ranges = [Page_Range()]
         self.page_directory = {}
         self.key_directory = {}
-        
-        self.base_pages = [[Page()] for _ in range(self.all_columns)]
-        self.tail_pages = [[Page()] for _ in range(self.all_columns)]
 
         pass
 
