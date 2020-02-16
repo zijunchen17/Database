@@ -1,4 +1,5 @@
 from lstore.page import *
+from lstore.range import *
 from time import time
 from lstore.config import *
 import math
@@ -43,9 +44,8 @@ class Table:
     def insert(self, schema_encoding, timestamp, *columns):
 
         rid = self.base_rid
-        pages = []
 
-        if not page_ranges[-1].has_capacity():
+        if not self.page_ranges[-1].has_capacity():
             self.page_ranges.append(Page_Range(self.all_columns))
         
         base_page = self.page_ranges[-1].get_last_base_page()
@@ -57,8 +57,8 @@ class Table:
         base_page[TIMESTAMP_COLUMN].write(timestamp)
         base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
 
-        for i, column in enumerate(columns)
-            self.base_pages[i+4].write(column)
+        for i, column in enumerate(columns):
+            base_page[i+4].write(column)
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
