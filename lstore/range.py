@@ -9,27 +9,27 @@ class Page_Range:
         self.full = 0
         self.base_pages = [[Page()] for _ in range(all_columns)]
         self.tail_pages = [[Page()] for _ in range(all_columns)]
-
-    def getBasePageIndex(self, rid):
-
-        return rid // (PAGE_SIZE // RECORD_SIZE)
     
-    def getBasePage(self, index):
+    def has_capacity(self):
+        return self.full
 
+    def get_base_page_index(self, rid):
+        return rid // (PAGE_SIZE // RECORD_SIZE)
+
+    def get_base_page(self, index):
         return self.base_pages[index]
     
-    def getLastBasePage(self):
-
+    def get_last_base_page(self):
         return [column[-1] for column in self.base_pages]
 
-    def __addBasePage(self):
+    def __add_base_page(self):
 
         if not self.full:
             if not self.base_pages[0][-1].has_capacity():
                 for page_list in self.base_pages:
                     page_list.append(Page())
 
-    def __addTailPage(self):
+    def __add_tail_page(self):
 
         if not self.tail_pages[0][-1].has_capacity():
             for page_list in self.tail_pages:
