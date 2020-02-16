@@ -30,16 +30,23 @@ class Page_Range:
     def get_last_base_page_index(self):
         return len(self.base_pages) - 1
 
+    def get_tail_page(self, index):
+        return self.tail_pages[index]
+    
+    def get_last_tail_page(self):
+        if not self.tail_pages[0][-1].has_capacity():
+            self.__add_tail_page()
+        
+        return [column[-1] for column in self.tail_pages]
+
     def __add_base_page(self):
         for page_list in self.base_pages:
             page_list.append(Page())
 
     def __add_tail_page(self):
-
-        if not self.tail_pages[0][-1].has_capacity():
-            for page_list in self.tail_pages:
-                page_list.append(Page())
-        
+        for page_list in self.tail_pages:
+            page_list.append(Page())
+    
 
 
         
