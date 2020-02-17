@@ -27,7 +27,8 @@ class Page:
             self.data[row * self.record_size:(row+1) * self.record_size] = b_value
         else:
             self.data[self.__pos : self.__pos + self.record_size] = b_value
-            self.num_records += 1
+        
+        self.num_records += 1
         
         #pass
 

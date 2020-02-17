@@ -8,13 +8,19 @@ class Page_Range:
         self.full = False
         self.base_pages = [[Page()] for _ in range(all_columns)]
         self.tail_pages = [[Page()] for _ in range(all_columns)]
+        self.__occupy_0_rid_slot()
     
     def has_capacity(self):
         if len(self.base_pages[0]) == BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
             self.full = True
 
         return not self.full
-
+    
+    def print_page_range(self):
+        for j, page in enumerate(self.base_pages):
+            for i in range(0, PAGE_SIZE // RECORD_SIZE):
+                print(self.base_pages[0][j].read(i), self.base_pages[1][j].read(i), self.base_pages[3][j].read(i), self.base_pages[4][j].read(i), self.base_pages[5][j].read(i), self.base_pages[6][j].read(i), self.base_pages[7][j].read(i), self.base_pages[8][j].read(i))
+            print('==================page break====================')
     def get_base_page(self, index):
         return self.base_pages[index]
     
@@ -24,6 +30,7 @@ class Page_Range:
     def get_last_base_page(self):
         if len(self.base_pages[0]) < BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
             self.__add_base_page()
+            print('new base page added')
 
         return [column[-1] for column in self.base_pages]
     
@@ -38,6 +45,10 @@ class Page_Range:
             self.__add_tail_page()
         
         return [column[-1] for column in self.tail_pages]
+    
+    def __occupy_0_rid_slot(self):
+        for column in self.base_pages:
+            column[0].write(SPECIAL_NULL_VALUE, 0)
 
     def __add_base_page(self):
         for page_list in self.base_pages:

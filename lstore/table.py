@@ -44,25 +44,24 @@ class Table:
     def insert(self, schema_encoding, timestamp, *columns):
 
         rid = self.base_rid
-
+        
         if not self.page_ranges[-1].has_capacity():
             self.page_ranges.append(Page_Range(self.all_columns))
         
         base_page = self.page_ranges[-1].get_last_base_page()
-
         physical_page_offset = rid % (PAGE_SIZE // RECORD_SIZE)
 
-        base_page[INDIRECTION_COLUMN].write(0)
-        base_page[RID_COLUMN].write(rid)
-        base_page[TIMESTAMP_COLUMN].write(timestamp)
-        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
+        base_page[INDIRECTION_COLUMN].write(0, physical_page_offset)
+        base_page[RID_COLUMN].write(rid, physical_page_offset)
+        base_page[TIMESTAMP_COLUMN].write(timestamp, physical_page_offset)
+        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding, physical_page_offset)
 
         for i, column in enumerate(columns):
             base_page[i+4].write(column, physical_page_offset)
-        
+        print(len(base_page))
+        print(base_page[INDIRECTION_COLUMN].read(physical_page_offset), base_page[RID_COLUMN].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+1].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+2].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+3].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+4].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+5].read(physical_page_offset))
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
-        print(base_page[self.key_column].read(physical_page_offset))
         self.base_rid += 1
 
     def update(self, key, timestamp, *columns):
@@ -92,7 +91,7 @@ class Table:
             else:
                 tail_schema += '0'
                 tail_page[i+4].write(SPECIAL_NULL_VALUE)
-        
+
         # Set tail's schema
         tail_page[SCHEMA_ENCODING_COLUMN].write(int(tail_schema))
         
@@ -151,21 +150,54 @@ class Table:
 
     ## select the record having the latest values
     def select(self, key, query_columns):
-
         if key in self.key_directory:
-            cur_rid = self.key_directory[key]
-            cur_columns = self.__read(cur_rid, query_columns)
-            row = self._get_row(cur_rid)
-            next_rid = self.page_directory[cur_rid][INDIRECTION_COLUMN].read(row)
-            while next_rid:
-                cur_rid = copy.deepcopy(next_rid)
-                next_row = self._get_row(cur_rid)
-                next_columns = self.__read(cur_rid,query_columns)
-                cur_columns = self.__update_column(cur_columns, next_columns)
-                next_rid = self.page_directory[cur_rid][INDIRECTION_COLUMN].read(next_row)
-            return [Record(key, cur_rid, cur_columns)]
+            base_rid = self.key_directory[key]
+            base_page = self.page_directory[base_rid]
+            base_physical_page_offset = base_rid % (PAGE_SIZE // RECORD_SIZE)
+            base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+            print(base_schema)
+            base_schema = format(base_schema, "b")
+            print(base_schema)
+            base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
+            print(base_schema)
+            
+
+            cur_columns = [None] * self.num_columns
+
+            for i, col in enumerate(base_schema):
+                if col == '0' and query_columns[i] == 1:
+                    cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+            
+            tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+
+            print(base_page[INDIRECTION_COLUMN].read(base_physical_page_offset), base_page[RID_COLUMN].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+1].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+2].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+3].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+4].read(base_physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN+5].read(base_physical_page_offset))
+
+            while base_schema != '0' * self.num_columns:
+                tail_page = self.page_directory[tail_rid]
+                tail_physical_page_offset = self._get_row(tail_rid)
+                tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
+                tail_schema = format(tail_schema, "b")
+                tail_schema = '0' * (self.num_columns - len(tail_schema)) + tail_schema
+                
+
+                for i, col in enumerate(tail_schema):
+                    #print(base_schema, tail_schema, query_columns)
+                    if base_schema[i] == tail_schema[i] == '1' and query_columns[i] == 1:
+                        cur_columns = tail_page[i + 4].read(tail_physical_page_offset)
+                        base_schema = base_schema[:i] + '0' + base_schema[i+1:]
+                
+                tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+            
+            filtered_columns = filter(self.__remove_none, cur_columns)
+            
+            cur_columns = []
+            for column in filtered_columns:
+                cur_columns.append(int(column))
+
+            return [Record(key, base_rid, cur_columns)]
         else:
             print('Key {} does not exist!'.format(key))
+        
 
     ### only read the base directory 
     # def select(self, key, query_columns):
@@ -183,6 +215,12 @@ class Table:
 
     #     else:
     #         print('Key {} does not exist!'.format(key))
+
+    def __remove_none(self, x):
+        if x == None:
+            return False
+        else:
+            return True
 
 
     def _key_directory_tail(self,key):
