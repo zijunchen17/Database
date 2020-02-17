@@ -58,76 +58,71 @@ class Table:
         base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
 
         for i, column in enumerate(columns):
-            base_page[i+4].write(column)
+            base_page[i+4].write(column, physical_page_offset)
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
-
+        print(base_page[self.key_column].read(physical_page_offset))
         self.base_rid += 1
 
     def update(self, key, timestamp, *columns):
         pages = []
+
+        base_rid = self.key_directory[key]
+        range_index = base_rid // PAGE_RANGE_SIZE
         
-        if not self.tail_pages[0][-1].has_capacity():
-            for page_list in self.tail_pages:
-                page_list.append(Page())
+        tail_page = self.page_ranges[range_index].get_last_tail_page()
+        tail_physical_page_offset = tail_page[0].num_records
+        tail_rid = (self.tail_rid << self.bit_shift) + tail_physical_page_offset
 
         ##############################
         # Write to tail page
         ##############################
-        
-        new_tail_row = self.tail_pages[0][-1].num_records
-        tail_rid = (self.tail_rid << self.bit_shift) + new_tail_row
 
-        self.tail_pages[INDIRECTION_COLUMN][-1].write(0)
-        self.tail_pages[RID_COLUMN][-1].write(tail_rid)
-        self.tail_pages[TIMESTAMP_COLUMN][-1].write(timestamp)
-        
+        tail_page[INDIRECTION_COLUMN].write(0)
+        tail_page[RID_COLUMN].write(tail_rid)
+        tail_page[TIMESTAMP_COLUMN].write(timestamp)
+
         # Create schema encoding and write to columns.
         tail_schema = ''
         for i, col in enumerate(columns):
             if col is not None:
                 tail_schema += '1'
-                self.tail_pages[i+4][-1].write(col)
+                tail_page[i+4].write(col)
             else:
                 tail_schema += '0'
-                self.tail_pages[i+4][-1].write(SPECIAL_NULL_VALUE)
-
+                tail_page[i+4].write(SPECIAL_NULL_VALUE)
+        
         # Set tail's schema
-        self.tail_pages[SCHEMA_ENCODING_COLUMN][-1].write(int(tail_schema))
-        for page_list in self.tail_pages:
-            pages.append(page_list[-1])
-        self.page_directory[tail_rid] = pages   
+        tail_page[SCHEMA_ENCODING_COLUMN].write(int(tail_schema))
+        
+        self.page_directory[tail_rid] = tail_page
+
 
         ##############################
         # Associate with base page
         ##############################
 
-        # Fetch base_indirection, base_rid, base_row, base_schema, and page_list
-        base_rid = self.key_directory[key]
-        base_row = self._get_row(base_rid)
-        base_page_list = self.page_directory[base_rid]
-        base_indirection_rid = base_page_list[INDIRECTION_COLUMN].read(base_row)
-        base_page_schema = base_page_list[SCHEMA_ENCODING_COLUMN].read(base_row)
+        # Fetch base_indirection, base_row, base_schema, and page_list
+        base_page = self.page_directory[base_rid]
+        base_physical_page_offset = base_rid % (PAGE_SIZE // RECORD_SIZE)
+        base_indirection_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+        base_page_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
 
-        # Add tail_rid to base_page if no pre-existing tail pages
-        if base_indirection_rid == 0:
-            base_page_list[INDIRECTION_COLUMN].write(tail_rid,base_row)
-        # Else set last tail_page's indirection pointer to the new tail_page
-        else:
-            next_tail_rid = base_indirection_rid
-            latest_tail_row = self._get_row(next_tail_rid)
-            while next_tail_rid:
-                next_tail_record = self.page_directory[next_tail_rid]
-                next_tail_row = self._get_row(next_tail_rid)
-                next_tail_rid = next_tail_record[INDIRECTION_COLUMN].read(next_tail_row)
-            next_tail_record[INDIRECTION_COLUMN].write(tail_rid,next_tail_row)
-            
+        # If base_indirection is not 0 (has existing tail records), 
+        # set base_indirection to rid of new tail record
+        if base_indirection_rid != 0:
+            latest_tail_rid = base_indirection_rid
+            tail_page[INDIRECTION_COLUMN].write(latest_tail_rid, tail_physical_page_offset)
+
+        # Add tail_rid to base_page's indirection
+        base_page[INDIRECTION_COLUMN].write(tail_rid, base_physical_page_offset)
+
 
         # Update base_page's schema
         tail_schema = int(tail_schema,2)
-        new_schema = base_page_schema|tail_schema
-        base_page_list[SCHEMA_ENCODING_COLUMN].write(int(new_schema),base_row)
+        new_base_schema = base_page_schema|tail_schema
+        base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
         self.tail_rid -= 1
 
     def _get_row(self, rid):
