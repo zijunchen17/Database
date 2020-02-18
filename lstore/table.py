@@ -222,9 +222,12 @@ class Table:
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
             del self.key_directory[key]
+            del self.page_directory[base_rid]
+
             while next_rid:
                 tail_page = self.page_directory[next_rid]
                 tail_page[RID_COLUMN].write(0, self._get_row(next_rid))
+                del self.page_directory[next_rid]
                 next_rid = tail_page[INDIRECTION_COLUMN].read(self._get_row(next_rid))
         else:
             print('Key {} does not exist!'.format(key))

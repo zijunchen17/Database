@@ -17,12 +17,11 @@ class Page_Range:
         return not self.full
     
     def print_page_range(self):
-        '''
-        for j, page in enumerate(self.base_pages):
+        for j, page in enumerate(self.base_pages[0]):
             for i in range(0, PAGE_SIZE // RECORD_SIZE):
                 print(self.base_pages[0][j].read(i), self.base_pages[1][j].read(i), self.base_pages[3][j].read(i), self.base_pages[4][j].read(i), self.base_pages[5][j].read(i), self.base_pages[6][j].read(i), self.base_pages[7][j].read(i), self.base_pages[8][j].read(i))
             print('==================page break====================')
-        '''
+    
         for j, page in enumerate(self.tail_pages[0]):
             for i in range(0, PAGE_SIZE // RECORD_SIZE):
                 print(self.tail_pages[0][j].read(i), self.tail_pages[1][j].read(i), self.tail_pages[2][j].read(i), self.tail_pages[3][j].read(i), self.tail_pages[4][j].read(i), self.tail_pages[5][j].read(i), self.tail_pages[6][j].read(i), self.tail_pages[7][j].read(i), self.tail_pages[8][j].read(i))
