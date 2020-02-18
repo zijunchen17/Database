@@ -51,13 +51,13 @@ class Table:
         base_page = self.page_ranges[-1].get_last_base_page()
         physical_page_offset = rid % (PAGE_SIZE // RECORD_SIZE)
 
-        base_page[INDIRECTION_COLUMN].write(0, physical_page_offset)
-        base_page[RID_COLUMN].write(rid, physical_page_offset)
-        base_page[TIMESTAMP_COLUMN].write(timestamp, physical_page_offset)
-        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding, physical_page_offset)
+        base_page[INDIRECTION_COLUMN].write(0)
+        base_page[RID_COLUMN].write(rid)
+        base_page[TIMESTAMP_COLUMN].write(timestamp)
+        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
 
         for i, column in enumerate(columns):
-            base_page[i+4].write(column, physical_page_offset)
+            base_page[i+4].write(column)
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
@@ -76,7 +76,7 @@ class Table:
         # Write to tail page
         ##############################
 
-        #tail_page[INDIRECTION_COLUMN].write(0)
+        tail_page[INDIRECTION_COLUMN].write(0)
         tail_page[RID_COLUMN].write(tail_rid)
         tail_page[TIMESTAMP_COLUMN].write(timestamp)
 
@@ -215,16 +215,17 @@ class Table:
 
     def delete(self, key):
         if key in self.key_directory:
-            cur_rid = self.key_directory[key]
-            row = self._get_row(cur_rid)
-            next_rid = self.page_directory[cur_rid][INDIRECTION_COLUMN].read(row)
-            self.page_directory[cur_rid][RID_COLUMN].update(0, row)
+            base_rid = self.key_directory[key]
+            base_page = self.page_directory[base_rid]
+            base_physical_page_offset = base_rid % (PAGE_SIZE // RECORD_SIZE)
+            base_page[RID_COLUMN].write(0, base_physical_page_offset)
+            next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+
             del self.key_directory[key]
             while next_rid:
-                next_row = self._get_row(next_rid)
-                next_rid_save = self.page_directory[next_rid][RID_COLUMN].read(next_row)
-                self.page_directory[next_rid][RID_COLUMN].update(0, next_row)
-                next_rid = self.page_directory[next_rid_save][INDIRECTION_COLUMN].read(next_row)
+                tail_page = self.page_directory[next_rid]
+                tail_page[RID_COLUMN].write(0, self._get_row(next_rid))
+                next_rid = tail_page[INDIRECTION_COLUMN].read(self._get_row(next_rid))
         else:
             print('Key {} does not exist!'.format(key))
 
