@@ -25,8 +25,6 @@ class Page:
 
         if row is not None:
             self.data[row * self.record_size:(row+1) * self.record_size] = b_value
-            if self.__pos // RECORD_SIZE == row:
-                self.num_records += 1
         else:
             self.data[self.__pos : self.__pos + self.record_size] = b_value
             self.num_records += 1
