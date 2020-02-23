@@ -2,8 +2,15 @@ from lstore.config import *
 import math
 class Page:
 
-    def __init__(self, page_size = PAGE_SIZE, record_size = RECORD_SIZE):
-
+    def __init__(self, 
+                 page_range_index, 
+                 page_type, 
+                 column_index, 
+                 page_size=PAGE_SIZE, 
+                 record_size=RECORD_SIZE):
+        self.page_range_index = page_range_index
+        self.page_type = page_type
+        self.column_index = column_index
         self.record_size = RECORD_SIZE
         self.page_size = PAGE_SIZE
         self.num_records = 0

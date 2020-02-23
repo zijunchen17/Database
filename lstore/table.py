@@ -2,6 +2,7 @@ from lstore.page import *
 from lstore.range import *
 from time import time
 from lstore.config import *
+from lstore.utils import * 
 import math
 import copy
 
@@ -19,6 +20,9 @@ class Record:
         self.key = key
         self.columns = columns
 
+    def __str__(self):
+        return str(self.columns)
+
 class Table:
 
     """
@@ -26,17 +30,17 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key_column):
+    def __init__(self, name, num_columns, key_column, page_directory):
         self.name = name
         self.key_column = key_column + 4
         self.num_columns = num_columns
+        self.page_directory = page_directory
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
         self.all_columns = num_columns + 4
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = [Page_Range(self.all_columns)]
-        self.page_directory = {}
+        self.page_ranges = [Page_Range(0, self.all_columns)]
         self.key_directory = {}
 
         pass
@@ -48,7 +52,11 @@ class Table:
         # A new page range is allocated only when the previous ones are full.
         # If the last page range is full, then a new one must be allocated.
         if not self.page_ranges[-1].has_capacity():
-            self.page_ranges.append(Page_Range(self.all_columns))
+            self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
+
+        ###test for page_range().attributes
+        # print(self.page_ranges[-1].page_range_index)
+        # print("----------------hello, test----------------")
         
         # A new base page is allocated only when the previous ones are full.
         # If the last base page is full, then a new one must be allocated.
@@ -62,6 +70,12 @@ class Table:
 
         for i, column in enumerate(columns):
             base_page[i+4].write(column)
+
+        ### test for page().attributes
+            # print(base_page[i+4].page_range_index)
+            # print(base_page[i+4].page_type)
+            # print(base_page[i+4].column_index)
+            # print("----------------hello, test----------------")
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
@@ -255,6 +269,13 @@ class Table:
                 # print('Key {} does not exist!'.format(key))
 
         return sum(column_value)
+
+    def get_table_schema(self):
+        table_schema = {'name': self.name,
+                        'num_columns': self.num_columns,
+                        'key_column': self.key_column,
+                        'page_directory': self.page_directory}
+        return table_schema
 
     def __merge(self):
         pass

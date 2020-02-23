@@ -4,10 +4,11 @@ import math
 
 class Page_Range:
 
-    def __init__(self, all_columns):
+    def __init__(self, page_range_index, all_columns):
+        self.page_range_index = page_range_index
         self.full = False
-        self.base_pages = [[Page()] for _ in range(all_columns)]
-        self.tail_pages = [[Page()] for _ in range(all_columns)]
+        self.base_pages = [[Page(self.page_range_index, BASE_PAGE_TYPE, i)] for i in range(all_columns)]
+        self.tail_pages = [[Page(self.page_range_index, TAIL_PAGE_TYPE, i)] for i in range(all_columns)]
         self.__occupy_tps_slot()
 
     def has_capacity(self):
@@ -67,13 +68,13 @@ class Page_Range:
             column[-1].write(SPECIAL_NULL_VALUE, PAGE_SIZE // RECORD_SIZE - 1)
 
     def __add_base_page(self):
-        for page_list in self.base_pages:
-            page_list.append(Page())
+        for i, page_list in enumerate(self.base_pages):
+            page_list.append(Page(self.page_range_index, BASE_PAGE_TYPE, i))
             self.__occupy_tps_slot()
 
     def __add_tail_page(self):
-        for page_list in self.tail_pages:
-            page_list.append(Page())
+        for i, page_list in enumerate(self.tail_pages):
+            page_list.append(Page(self.page_range_index, TAIL_PAGE_TYPE, i))
     
 
 
