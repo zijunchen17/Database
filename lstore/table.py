@@ -19,6 +19,9 @@ class Record:
         self.key = key
         self.columns = columns
 
+    def __str__(self):
+        return str(self.columns)
+
 class Table:
 
     """
@@ -38,7 +41,6 @@ class Table:
         self.page_ranges = [Page_Range(self.all_columns)]
         self.page_directory = {}
         self.key_directory = {}
-
         pass
 
     def insert(self, schema_encoding, timestamp, *columns):
@@ -62,7 +64,7 @@ class Table:
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
-        print(base_page[self.key_column].read(physical_page_offset))
+        # print(base_page[self.key_column].read(physical_page_offset))
         self.base_rid += 1
 
     def update(self, key, timestamp, *columns):
@@ -74,7 +76,11 @@ class Table:
         tail_page = self.page_ranges[range_index].get_last_tail_page()
         tail_physical_page_offset = tail_page[0].num_records
         tail_rid = (self.tail_rid << self.bit_shift) + tail_physical_page_offset
+        ##############################
+        # merge if needed
+        ##############################
 
+        self.__merge()
         ##############################
         # Write to tail page
         ##############################
@@ -167,23 +173,6 @@ class Table:
         else:
             print('Key {} does not exist!'.format(key))
 
-    ### only read the base directory 
-    # def select(self, key, query_columns):
-    #     if key in self.key_directory:
-
-    #         # records = []
-    #         cur_rid = self.key_directory[key]
-    #         row = self._get_row(cur_rid)
-    #         page_list = self.page_directory[cur_rid]
-    #         page_list = page_list[SCHEMA_ENCODING_COLUMN+1:]
-    #         page_list = [p for i,p in enumerate(page_list) if query_columns[i] == 1]
-    #         cur_columns = [page.read(row) for page in page_list]
-    #         return [Record(key, cur_rid, cur_columns)]
-            
-
-    #     else:
-    #         print('Key {} does not exist!'.format(key))
-
 
     def _key_directory_tail(self,key):
         if key in self.key_directory:
@@ -234,7 +223,94 @@ class Table:
 
         return sum(column_value)
 
-    def __merge(self):
-        pass
+    def __merge(self, range_index):
+        if self.page_ranges[range_index].__add_tail_page().check_merge:
+            tail_len = len(self.page_ranges[range_index].tail_pages[0][:-1])
+            if tail_len >= MERGE_SIZE and tail_len % MERGE_SIZE == 0:
+                ########
+                # trig merge
+                ########
+                tails_to_merge = [each_page[-MERGE_SIZE-1:-1] for each_page in self.page_ranges[range_index].tail_pages]
+                base_copy = copy.deepcopy(self.page_ranges[range_index].base_pages[SCHEMA_ENCODING_COLUMN+1:])
+
+
+                ########
+                # change merge trigger back
+                ########
+                self.page_ranges[range_index].__add_tail_page().check_merge = False
+            else:
+                self.page_ranges[range_index].__add_tail_page().check_merge = False
+            pass
+        else:
+            pass
+
+    @ staticmethod
+    def _get_location_record(baserid_list, base_rid):
+        """
+        find rows of records with the same BaseRID in one set of tail pages
+        """
+        record_location = [i for i, x in enumerate(baserid_list) if x == base_rid]
+        return record_location
+
+    @staticmethod
+    def _latest_per_rid_per_col(record_location, per_col_per_tail):
+        """
+        get latest record in one tail page for a column
+        """
+        updates_each_rid = [per_col_per_tail.read(row) for row in record_location][::-1] # from latest to oldest
+        ltst_col_rcd = next((x for i, x in enumerate(updates_each_rid) if x != SPECIAL_NULL_VALUE), SPECIAL_NULL_VALUE)
+        return ltst_col_rcd
+
+    def _latest_per_rid_per_tail(self, record_location, all_col_per_tail):
+        """
+        get the latest record in one set of tail page for all columns
+        """
+        ltst_rcds_per_tail = [self._latest_per_rid_per_col(record_location, per_tail) for per_tail in all_col_per_tail]
+        return ltst_rcds_per_tail
+
+    @staticmethod
+    def update_counts(base_schema):
+        """
+        how many columns has been updated
+        """
+        return bin(base_schema).count('1')
+
+    def _latest_all_rids_per_tail(self, record_locations, tails_to_merge, base_schema_encode, ltst_rcds_all_tails):
+        """
+        give a rid, get the latest update for all column through all tail pages
+        """
+        for record_locations, per_tail in zip(record_location_list, tails_to_merge):
+
+
+    @staticmethod
+    def baserid_in_per_tail(baserid_one_tail):
+        baserid_list = [baserid_one_tail.read(row) for row in range(PAGE_SIZE // RECORD_SIZE)]
+        return baserid_list
+
+    def baserid_in_all_tails(self, baserid_all_tails):
+       baserid_list_list  = [self.baserid_in_per_tail(baserid_one_tail) for baserid_one_tail in baserid_all_tails]
+       baserid_all = list(set().union(*baserid_list_list))
+       return baserid_all
+
+
+        record_location_list = [self._get_location_record(baserid_list, base_rid) for base_rid in baserid_set]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

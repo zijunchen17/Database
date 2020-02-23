@@ -1,4 +1,4 @@
-from lstore.config import *
+from config import *
 import math
 class Page:
 

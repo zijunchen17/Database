@@ -1,4 +1,6 @@
-from lstore.table import Table
+from table import Table
+from index import Index
+import os
 
 class Database():
 
@@ -7,6 +9,7 @@ class Database():
         pass
 
     def open(self):
+
         pass
 
     def close(self):
@@ -22,6 +25,10 @@ class Database():
         ## key = primary key (unique)
         table = Table(name, num_columns, key)
         return table
+
+
+    def get_table(self, name):
+        pass
 
     """
     # Deletes the specified table
