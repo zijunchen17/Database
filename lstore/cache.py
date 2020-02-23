@@ -14,6 +14,9 @@ class Cache:
 
         def __contains(self, key):
                 return key in self.cache
+        
+        def __num_pages_in_cache(self):
+                return len(self.cache)
 
         def __evict(self):
                 lru_page = None
@@ -34,6 +37,12 @@ class Cache:
                 key = str(page.table_name) + '/page_range' + str(page.range_index)
 
                 self.cache[key] = (page, datetime.datetime.now())
+        
+        def get_page(self, table, rid):
+                # Get key directory for table
+                # Get rid from key directory
+                # 
+
                 
                 
                 
