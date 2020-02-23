@@ -31,6 +31,9 @@ class Cache:
                 if len(self.cache) == NUM_PAGES:
                         self.__evict()
                 
+                key = str(page.table_name) + '/page_range' + str(page.range_index)
+
+                self.cache[key] = (page, datetime.datetime.now())
                 
                 
                 
