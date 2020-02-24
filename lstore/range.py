@@ -5,9 +5,10 @@ import math
 class Page_Range:
 
     def __init__(self, all_columns):
+        self.num_tail_pages = 0
         self.full = False
         self.base_pages = [[Page()] for _ in range(all_columns)]
-        self.tail_pages = [[Page()] for _ in range(all_columns)]
+        self.tail_pages = [[Page()] for _ in range(all_columns + 1)]
         self.__occupy_tps_slot()
 
     def has_capacity(self):
@@ -25,14 +26,17 @@ class Page_Range:
     
         for j, page in enumerate(self.tail_pages[0]):
             for i in range(0, PAGE_SIZE // RECORD_SIZE - 1):
-                print(self.tail_pages[0][j].read(i), self.tail_pages[1][j].read(i), self.tail_pages[2][j].read(i), self.tail_pages[3][j].read(i), self.tail_pages[4][j].read(i), self.tail_pages[5][j].read(i), self.tail_pages[6][j].read(i), self.tail_pages[7][j].read(i), self.tail_pages[8][j].read(i))
+                print(self.tail_pages[0][j].read(i), self.tail_pages[1][j].read(i), self.tail_pages[2][j].read(i), self.tail_pages[3][j].read(i), self.tail_pages[4][j].read(i), self.tail_pages[5][j].read(i), self.tail_pages[6][j].read(i), self.tail_pages[7][j].read(i), self.tail_pages[8][j].read(i), self.tail_pages[9][j].read(i))
             print('==================page break====================')
             
     def get_base_page(self, index):
         return self.base_pages[index]
     
     def get_base_page_index(self, rid):
-        return rid // (PAGE_SIZE // RECORD_SIZE)
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE - 1)
+    
+    def get_tail_page_index(self, rid):
+        return int(2**64 - rid) // (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page(self):
 
@@ -74,6 +78,7 @@ class Page_Range:
     def __add_tail_page(self):
         for page_list in self.tail_pages:
             page_list.append(Page())
+        self.num_tail_pages += 1
     
 
 

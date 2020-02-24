@@ -9,6 +9,7 @@ INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
 TIMESTAMP_COLUMN = 2
 SCHEMA_ENCODING_COLUMN = 3
+TAIL_BASE_RID_COLUMN = -1
 
 
 class Record:
@@ -103,6 +104,9 @@ class Table:
         ##############################
         # Associate with base page
         ##############################
+
+        # Point the tail record to its base record
+        tail_page[TAIL_BASE_RID_COLUMN].write(base_rid)
 
         # Fetch base_indirection, base_row, base_schema, and page_list
         base_page = self.page_directory[base_rid]
