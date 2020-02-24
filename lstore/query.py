@@ -58,3 +58,7 @@ class Query:
     def sum(self, start_range, end_range, aggregate_column_index):
 
         return self.table.sum(start_range, end_range, aggregate_column_index)
+    
+    def print(self):
+        for range in self.table.page_ranges:
+            range.print_page_range()
