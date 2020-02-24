@@ -30,7 +30,7 @@ class Page_Range:
         return self.base_pages[index]
     
     def get_base_page_index(self, rid):
-        return rid // (PAGE_SIZE // RECORD_SIZE)
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page(self):
 
@@ -47,6 +47,9 @@ class Page_Range:
 
     def get_tail_page(self, index):
         return self.tail_pages[index]
+    
+    def get_tail_page_index(self, rid):
+        return int(2**64 - (rid + 1)) // (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_tail_page(self):
         if not self.tail_pages[0][-1].has_capacity():
