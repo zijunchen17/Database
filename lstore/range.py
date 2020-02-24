@@ -15,7 +15,7 @@ class Page_Range:
         if len(self.base_pages[0]) == BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
             self.full = True
 
-        return not self.full
+        return self.full
     
     # Method for printing out the contents of a page range, useful for debugging
     def print_page_range(self):
@@ -33,7 +33,7 @@ class Page_Range:
         return self.base_pages[index]
     
     def get_base_page_index(self, rid):
-        return rid // (PAGE_SIZE // RECORD_SIZE)
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE - 1) % 16
     
     def get_last_base_page(self):
 

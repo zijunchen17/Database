@@ -8,6 +8,7 @@ from random import choice, randint, sample, seed
 # Student Id and 4 grades
 # init()
 db = Database()
+db.open('~/ECS165')
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
 
@@ -15,7 +16,7 @@ records = {}
 
 seed(3562901)
 
-for i in range(0, 1000):
+for i in range(0, 9000):
     key = 92106429 + randint(0, 9000)
     while key in records:
         key = 92106429 + randint(0, 9000)

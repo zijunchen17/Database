@@ -54,22 +54,29 @@ class Table:
         if not self.page_ranges[-1].has_capacity():
             self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
 
+        # if self.page_ranges[-1].full:
+        #     self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
+
         ###test for page_range().attributes
         # print(self.page_ranges[-1].page_range_index)
         # print("----------------hello, test----------------")
         
         # A new base page is allocated only when the previous ones are full.
         # If the last base page is full, then a new one must be allocated.
+
         base_page = self.page_ranges[-1].get_last_base_page()
         physical_page_offset = (rid - 1) % (PAGE_SIZE // RECORD_SIZE - 1)
+        # self.page_ranges[-1].print_page_range()
 
-        base_page[INDIRECTION_COLUMN].write(0)
-        base_page[RID_COLUMN].write(rid)
-        base_page[TIMESTAMP_COLUMN].write(timestamp)
-        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
+
+        base_page[INDIRECTION_COLUMN].write(0,physical_page_offset)
+        base_page[RID_COLUMN].write(rid,physical_page_offset)
+        base_page[TIMESTAMP_COLUMN].write(timestamp,physical_page_offset)
+        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding,physical_page_offset)
 
         for i, column in enumerate(columns):
-            base_page[i+4].write(column)
+            base_page[i+4].write(column,physical_page_offset)
+
 
         ### test for page().attributes
             # print(base_page[i+4].page_range_index)
@@ -85,6 +92,7 @@ class Table:
 
         base_rid = self.key_directory[key]
         range_index = base_rid // PAGE_RANGE_SIZE
+        # print(base_rid, range_index)
         
         tail_page = self.page_ranges[range_index].get_last_tail_page()
         tail_physical_page_offset = tail_page[0].num_records
@@ -279,5 +287,3 @@ class Table:
 
     def __merge(self):
         pass
-
-
