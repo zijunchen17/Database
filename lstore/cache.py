@@ -8,79 +8,76 @@ from collections import OrderedDict
 
 class Cache:
 
-        def __init__(self, tables):
+        def __init__(self):
                 self.cache_size = CACHE_SIZE
                 self.cache = OrderedDict()
-                self.tables = tables
 
         def __contains(self, key):
                 return key in self.cache
         
-        def __num_pages_in_cache(self):
+        def __num_page_ranges_in_cache(self):
                 return len(self.cache)
 
         def __evict(self):
                 evict_key = None
-                # Looks for oldest unpinned page
+                # Looks for oldest unpinned page range
                 for key in iter(self.cache):
                         if self.cache[key].pinned == False:
                                 evict_key = key
                                 break
 
-                # If we found an unpinned page to evict
+                # If we found an unpinned page range to evict
                 if evict_key != None:
-                        evicted_page = self.cache[evict_key]
+                        evicted_page_range = self.cache[evict_key]
                         del self.cache[evict_key]
 
-                        if evicted_page.dirty == True:
+                        if evicted_page_range.dirty == True:
                                 '''
-                                Write to disk if dirty
+                                Write to disk
                                 '''
         def __read_disk(self):
         
-        def __write_disk(self, page):
+        def __write_disk(self, page_range):
 
-        def __insert(self, key, page):
-                key = None
+        def __insert(self, key, page_range):
                 # If cache is full, evict oldest unpinned page
-                if self.__num_pages_in_cache == CACHE_SIZE:
+                if self.__num_page_ranges_in_cache == CACHE_SIZE:
                         self.__evict()
                 
                 # If cache is no longer full, start insertion process
-                if self.__num_pages_in_cache == CACHE_SIZE:
-                        '''
-                        Build key for the page
-                        '''
-                        key = new_key
-                        self.cache[key] = page
+                if self.__num_page_ranges_in_cache < CACHE_SIZE:
+                        self.cache[key] = page_range
 
-                else: # All pages in cache are pinned, can't insert a new page into cache
+                else: # All page ranges in cache are pinned, can't insert a new page into cache
                         print('Error inserting new page into the bufferpool/cache')
-                        print('Cache is full and all pages are pinned')
-                
-                return key
+                        print('Cache is full and all page ranges are pinned')
 
-        def add_page(self, page):
-                key = page.table_name
+        def add_page_range(self, page_range_index, page_range):
+                key = page_range_index
+                self.__insert(key, page_range)
         
-        def get_page(self, key):
-                # Check if page being accessed is already in cache
+        def get_page_range(self, key):
+                # Check if page range being accessed is already in cache
+                # Grab the page range, take it out of cache and reinsert
+                # to make it the most recent item in cache 
                 if key in self.cache:
+                        page_range = self.cache[key]
+                        del self.cache[key]
+                        self.cache[key] = page_range
                         self.cache[key].pinned = True
-                # Grab the page from disk
+                # Grab the page range from disk
                 else:
                         '''
-                        Read page from disk
+                        Read page range from disk
                         '''
-                        key = self.__insert(page)
-
-
+                        self.__insert(key, page_range)
+                
                 return self.cache[key]
-
-
+        
+        # !!! Only close cache when no queries running !!!
         def close_cache(self):
                 while self.cache: # As long as cache isn't empty, pop and write each page to disk
-                        page = self.cache.popitem(False) # False means pop oldest item
+                        page_range = self.cache.popitem(False) # False means pop oldest item
                         '''
-                         Write page to disk
+                         Write page range to disk
                         '''
