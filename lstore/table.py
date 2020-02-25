@@ -205,8 +205,13 @@ class Table:
                 base_column[i] = tail_column[i]
         return base_column
 
-# for i in range(10): print(base_page[i].read(base_physical_page_offset))
-# for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
+
+    def quick_select(self, rid, query_columns):
+        # TODO: Don't need to check key directory. Should also be able to 
+        # go straight to the page needed. Other todo in query.select().
+        pass
+
+
     ## select the record having the latest values
     def select(self, key, query_columns):
         # if self.flag:
