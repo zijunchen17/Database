@@ -3,3 +3,6 @@
 
 # Python byte code files
 *.pyc
+
+# Text files (contain test output)
+*.txt

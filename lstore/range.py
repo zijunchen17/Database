@@ -40,6 +40,7 @@ class Page_Range:
         #     for i in range(0, PAGE_SIZE // RECORD_SIZE - 1):
         #         print(self.tail_pages[0][j].read(i), self.tail_pages[1][j].read(i), self.tail_pages[2][j].read(i), self.tail_pages[3][j].read(i), self.tail_pages[4][j].read(i), self.tail_pages[5][j].read(i), self.tail_pages[6][j].read(i), self.tail_pages[7][j].read(i), self.tail_pages[8][j].read(i), self.tail_pages[9][j].read(i))
         #     print('==================page break====================')
+
             
     def get_base_page(self, index):
         return self.base_pages[index]
@@ -76,7 +77,3 @@ class Page_Range:
     def __add_tail_page(self):
         for i, page_list in enumerate(self.tail_pages):
             page_list.append(Page(len(self.tail_pages[0]), self.page_range_index, TAIL_PAGE_TYPE, i))
-  
-
-
-        
