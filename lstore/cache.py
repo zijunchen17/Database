@@ -2,6 +2,7 @@ from lstore.db import Database
 from lstore.table import *
 from lstore.page import *
 from lstore.config import *
+from lstore.utils import
 from collections import OrderedDict
 
 
@@ -59,6 +60,8 @@ class Cache:
                 
                 return key
 
+        def add_page(self, page):
+                key = page.table_name
         
         def get_page(self, key):
                 # Check if page being accessed is already in cache

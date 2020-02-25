@@ -2,7 +2,8 @@ from lstore.config import *
 import math
 class Page:
 
-    def __init__(self, 
+    def __init__(self,
+                 table_name, 
                  page_index, 
                  page_range_index, 
                  page_type, 
@@ -11,7 +12,7 @@ class Page:
                  page_pin = False,
                  page_size=PAGE_SIZE, 
                  record_size=RECORD_SIZE):
-        
+        self.table_name = table_name
         self.page_dirty = page_dirty
         self.page_pin = page_pin
         self.page_index = page_index
