@@ -162,6 +162,12 @@ class Table:
         return base_column
 
 
+    def quick_select(self, rid, query_columns):
+        # TODO: Don't need to check key directory. Should also be able to 
+        # go straight to the page needed. Other todo in query.select().
+        pass
+
+
     ## select the record having the latest values
     def select(self, key, query_columns):
         #self.page_ranges[-1].print_page_range()
