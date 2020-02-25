@@ -3,6 +3,7 @@ from lstore.index import Index
 from time import time
 
 
+
 class Query:
     """
     # Creates a Query object that can perform different queries on the specified table 
@@ -10,6 +11,7 @@ class Query:
 
     def __init__(self, table):
         self.table = table
+        self.index = Index(self.table)
         pass
 
     """
@@ -27,8 +29,10 @@ class Query:
     def insert(self, *columns):
         schema_encoding = int('0' * self.table.num_columns)
         timestamp = int(time())
+        for col_num, val in enumerate(columns):
+            if self.index.has_index(col_num):
+                self.index.add_to_index(col_num,val,self.table.base_rid)
         self.table.insert(schema_encoding, timestamp, *columns)
-        pass
 
     """
     # Read a record with specified key
