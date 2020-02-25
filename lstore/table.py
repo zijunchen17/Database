@@ -37,7 +37,7 @@ class Table:
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = [Page_Range(0,self.all_columns)]
+        self.page_ranges = [Page_Range(self.name, len(self.page_ranges), self.all_columns)]
         self.page_directory = {}
         self.key_directory = {}
 
@@ -50,7 +50,7 @@ class Table:
         # A new page range is allocated only when the previous ones are full.
         # If the last page range is full, then a new one must be allocated.
         if not self.page_ranges[-1].has_capacity():
-            self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
+            self.page_ranges.append(Page_Range(self.name, len(self.page_ranges), self.all_columns))
         
         # A new base page is allocated only when the previous ones are full.
         # If the last base page is full, then a new one must be allocated.
