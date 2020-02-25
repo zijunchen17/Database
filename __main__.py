@@ -5,7 +5,6 @@ from random import choice, randrange
 
 # Student Id and 4 grades
 db = Database()
-db.open('~/ECS165')
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
 keys = []
@@ -28,6 +27,8 @@ update_cols = [
     [None, None, None, randrange(0, 100), None],
     [None, None, None, None, randrange(0, 100)],
 ]
+
+# query.print()
 
 update_time_0 = process_time()
 for i in range(0, 10000):
@@ -55,4 +56,6 @@ for i in range(0, 10000):
     query.delete(906659671 + i)
 delete_time_1 = process_time()
 print("Deleting 10k records took:  \t\t\t", delete_time_1 - delete_time_0)
+
+
 

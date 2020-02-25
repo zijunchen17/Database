@@ -2,7 +2,6 @@ from lstore.page import *
 from lstore.range import *
 from time import time
 from lstore.config import *
-from lstore.utils import * 
 import math
 import copy
 
@@ -10,6 +9,8 @@ INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
 TIMESTAMP_COLUMN = 2
 SCHEMA_ENCODING_COLUMN = 3
+BASE_TPS_COLUMN = -1 # Only in base pages
+TAIL_BASE_RID_COLUMN = -1 # Only in tail pages
 
 
 class Record:
@@ -20,9 +21,6 @@ class Record:
         self.key = key
         self.columns = columns
 
-    def __str__(self):
-        return str(self.columns)
-
 class Table:
 
     """
@@ -30,17 +28,17 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key_column, page_directory):
+    def __init__(self, name, num_columns, key_column):
         self.name = name
         self.key_column = key_column + 4
         self.num_columns = num_columns
-        self.page_directory = page_directory
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
-        self.all_columns = num_columns + 4
+        self.all_columns = num_columns + 5
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = [Page_Range(0, self.all_columns)]
+        self.page_ranges = [Page_Range(0,self.all_columns)]
+        self.page_directory = {}
         self.key_directory = {}
 
         pass
@@ -53,46 +51,34 @@ class Table:
         # If the last page range is full, then a new one must be allocated.
         if not self.page_ranges[-1].has_capacity():
             self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
-
-        # if self.page_ranges[-1].full:
-        #     self.page_ranges.append(Page_Range(len(self.page_ranges), self.all_columns))
-
-        ###test for page_range().attributes
-        # print(self.page_ranges[-1].page_range_index)
-        # print("----------------hello, test----------------")
         
         # A new base page is allocated only when the previous ones are full.
         # If the last base page is full, then a new one must be allocated.
-
         base_page = self.page_ranges[-1].get_last_base_page()
-        physical_page_offset = (rid - 1) % (PAGE_SIZE // RECORD_SIZE - 1)
-        # self.page_ranges[-1].print_page_range()
+        physical_page_offset = (rid - 1) % (PAGE_SIZE // RECORD_SIZE)
 
-
-        base_page[INDIRECTION_COLUMN].write(0,physical_page_offset)
-        base_page[RID_COLUMN].write(rid,physical_page_offset)
-        base_page[TIMESTAMP_COLUMN].write(timestamp,physical_page_offset)
-        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding,physical_page_offset)
+        base_page[INDIRECTION_COLUMN].write(0)
+        base_page[RID_COLUMN].write(rid)
+        base_page[TIMESTAMP_COLUMN].write(timestamp)
+        base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
+        base_page[BASE_TPS_COLUMN].write(0)
 
         for i, column in enumerate(columns):
-            base_page[i+4].write(column,physical_page_offset)
-
-
-        ### test for page().attributes
-            # print(base_page[i+4].page_range_index)
-            # print(base_page[i+4].page_type)
-            # print(base_page[i+4].column_index)
-            # print("----------------hello, test----------------")
+            base_page[i+4].write(column)
         
         self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
+        #print('reading at', physical_page_offset)
+        #print(base_page[INDIRECTION_COLUMN].read(physical_page_offset), base_page[RID_COLUMN].read(physical_page_offset), base_page[TIMESTAMP_COLUMN].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN].read(physical_page_offset), base_page[4].read(physical_page_offset), base_page[5].read(physical_page_offset), base_page[6].read(physical_page_offset), base_page[7].read(physical_page_offset), base_page[8].read(physical_page_offset))
         self.base_rid += 1
+        #self.page_ranges[-1].print_page_range()
 
     def update(self, key, timestamp, *columns):
 
+        
+
         base_rid = self.key_directory[key]
         range_index = base_rid // PAGE_RANGE_SIZE
-        # print(base_rid, range_index)
         
         tail_page = self.page_ranges[range_index].get_last_tail_page()
         tail_physical_page_offset = tail_page[0].num_records
@@ -128,9 +114,12 @@ class Table:
 
         # Fetch base_indirection, base_row, base_schema, and page_list
         base_page = self.page_directory[base_rid]
-        base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE - 1)
+        base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
         base_indirection_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
         base_page_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+
+        # Point the tail record to its base record
+        tail_page[TAIL_BASE_RID_COLUMN].write(base_rid, tail_physical_page_offset)
 
         # If base_indirection is not 0 (has existing tail records), 
         # set base_indirection to rid of new tail record
@@ -175,10 +164,11 @@ class Table:
 
     ## select the record having the latest values
     def select(self, key, query_columns):
+        #self.page_ranges[-1].print_page_range()
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             base_page = self.page_directory[base_rid]
-            base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE - 1)
+            base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             base_schema = format(base_schema, "b")
             base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
@@ -243,7 +233,7 @@ class Table:
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             base_page = self.page_directory[base_rid]
-            base_physical_page_offset = (base_rid -1 ) % (PAGE_SIZE // RECORD_SIZE - 1)
+            base_physical_page_offset = (base_rid - 1) %(PAGE_SIZE // RECORD_SIZE)
             base_page[RID_COLUMN].write(0, base_physical_page_offset)
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
@@ -278,12 +268,7 @@ class Table:
 
         return sum(column_value)
 
-    def get_table_schema(self):
-        table_schema = {'name': self.name,
-                        'num_columns': self.num_columns,
-                        'key_column': self.key_column,
-                        'page_directory': self.page_directory}
-        return table_schema
-
     def __merge(self):
         pass
+
+

@@ -1,15 +1,20 @@
 from lstore.config import *
-# from config import * 
-
 import math
 class Page:
 
     def __init__(self, 
+                 page_index, 
                  page_range_index, 
                  page_type, 
                  column_index, 
+                 page_dirty = False,
+                 page_pin = False,
                  page_size=PAGE_SIZE, 
                  record_size=RECORD_SIZE):
+        
+        self.page_dirty = page_dirty
+        self.page_pin = page_pin
+        self.page_index = page_index
         self.page_range_index = page_range_index
         self.page_type = page_type
         self.column_index = column_index
