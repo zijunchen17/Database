@@ -32,19 +32,19 @@ class Cache:
                         del self.cache[evict_key]
 
                         if evicted_page_range.dirty == True:
-                                '''
-                                Write to disk
-                                '''
+                                self.__write_disk(evicted_page_range)
+
         # Write tail pages of page range to disk, after merge
         def evict_tail_pages(self, key):
                 page_range = self.cache[key]
                 '''
-                write_tail_pages(page_range.tail_pages, str(key) + '/' + 'tail')
+                write the tail pages of page range to disk
                 '''
 
         def __read_disk(self, key):
 
                 page_range = Page_Range(table_name, key, all_columns)
+                
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(all_columns):
                                 base_page = read_page_from_file('page_range' + key + '/base/column' + str(j), i)
@@ -55,10 +55,16 @@ class Cache:
                                 tail_page = read_page_from_file('page_range' + key + '/tail/column' + str(j), i)
                                 page_range.tail_pages[j] = tail_page
                 
-                
                 return page_range
         
         def __write_disk(self, page_range):
+                for i in range(BASE_PAGES_PER_RANGE):
+                        for j in range(all_columns):
+                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + page_range.page_range_index + '/base/column' + str(j), i)
+                
+                for i in range(NUM_TAILS_BEFORE_MERGE):
+                        for j in range(all_columns):
+                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + page_range.page_range_index + '/tail/column' + str(j), i)
 
         def __insert(self, key, page_range):
                 # If cache is full, evict oldest unpinned page
@@ -77,7 +83,8 @@ class Cache:
                 key = page_range_index
                 self.__insert(key, page_range)
         
-        def get_page_range(self, key):
+        # Pass in a page range index, and True if the page range will be written to
+        def get_page_range(self, key, write = False):
                 # Check if page range being accessed is already in cache
                 # Grab the page range, take it out of cache and reinsert
                 # to make it the most recent item in cache 
@@ -85,20 +92,23 @@ class Cache:
                         page_range = self.cache[key]
                         del self.cache[key]
                         self.cache[key] = page_range
-                        self.cache[key].pinned = True
                 # Grab the page range from disk
                 else:
-                        '''
-                        Read page range from disk
-                        '''
+                        page_range = self.__read_disk(key)
                         self.__insert(key, page_range)
                 
+                # Pin page so it isn't evicted while still being accessed
+                self.cache[key].pinned = True
+
+                # If write flag is set, 
+                if write:
+                        self.cache[key].dirty = True
+
                 return self.cache[key]
         
         # !!! Only close cache when no queries running !!!
         def close_cache(self):
                 while self.cache: # As long as cache isn't empty, pop and write each page to disk
                         page_range = self.cache.popitem(False) # False means pop oldest item
-                        '''
-                         Write page range to disk
-                        '''
+                        if page_range.dirty == True:
+                                self.__write_disk(page_range)
