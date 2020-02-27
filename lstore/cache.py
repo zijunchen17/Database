@@ -42,7 +42,7 @@ class Cache:
                                 filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
-                                        file_offset = os.path.getsize() - NUM_TAILS_BEFORE_MERGE + i
+                                        file_offset = (os.path.getsize() // PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
 
                                 write_page_to_file(page_range.base_pages[j][i], filename, file_offset)
 
@@ -60,7 +60,7 @@ class Cache:
                         for j in range(all_columns):
                                 filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 if os.path.exists(filename):
-                                        file_offset = os.path.getsize() - NUM_TAILS_BEFORE_MERGE + i
+                                        file_offset = (os.path.getsize() // PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
                                         page_range.tail_pages.append( read_page_from_file(filename, file_offset))
                                 else:
                                         page_range.tail_pages.append( (Page(table_name, i, key, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
