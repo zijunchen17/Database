@@ -2,7 +2,7 @@ from lstore.db import Database
 from lstore.table import *
 from lstore.page import *
 from lstore.config import *
-from lstore.utils import *
+from lstore.file_access import *
 from collections import OrderedDict
 
 

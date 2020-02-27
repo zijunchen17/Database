@@ -2,6 +2,7 @@ from lstore.page import *
 from lstore.range import *
 from time import time
 from lstore.config import *
+from lstore.utils imposrt *
 import math
 import copy
 
