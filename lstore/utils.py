@@ -3,6 +3,8 @@ import os
 from lstore.config import *
 from lstore.page import Page
 
+def get_page_range_index(rid):
+    return rid // (PAGE_SIZE // RECORD_SIZE * BASE_PAGES_PER_RANGE)
 
 ### write a single physical page() from disk
 ### if page() does not exist: append to the file and get the offset of file
