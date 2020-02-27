@@ -12,7 +12,7 @@ def write_page_to_file(page, filename, file_offset = None):
         #### if file exists, we could get the file size
         #### otherwise starts from 0
         if os.path.isfile(filename):
-            file_offset = os.path.getsize(filename)//PAGE_SIZE
+            file_offset = os.path.getsize(filename)//(PAGE_SIZE + RECORD_SIZE)
         else:
             file_offset = 0
 
@@ -20,6 +20,7 @@ def write_page_to_file(page, filename, file_offset = None):
     with open(filename, 'wb') as f:
         f.seek(seek_pos)
         f.write(page.data)
+        f.write(page.num_records.to_bytes(RECORD_SIZE,byteorder = BYTE_ORDER))
     return file_offset
 
 
@@ -32,9 +33,10 @@ def read_page_from_file(filename, file_offset):
     temp, page_range_index = os.path.split(temp)
     page = Page(int(page_range_index), page_type, int(column_index))
     with open(filename, 'rb') as f:
-        seek_pos = file_offset * PAGE_SIZE
+        seek_pos = file_offset * (PAGE_SIZE + RECORD_SIZE)
         f.seek(seek_pos)
         page.data = f.read(PAGE_SIZE)
+        page.num_records = int.from_bytes(f.read(8), BYTE_ORDER)
     return page
 
 
