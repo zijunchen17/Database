@@ -11,15 +11,9 @@ class Page_Range:
 
         self.all_columns = all_columns
 
-        self.base_pages = [[Page(table_name, 0, self.page_range_index, BASE_PAGE_TYPE, i)] for i in range(self.all_columns)]
+        self.base_pages = []
 
-        self.tail_pages = [[Page(table_name, 0, self.page_range_index, TAIL_PAGE_TYPE, i)] for i in range(self.all_columns)]
-
-    def has_capacity(self):
-        if len(self.base_pages[0]) == BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
-            return False
-
-        return True
+        self.tail_pages = []
     
     # Method for printing out the contents of a page range, useful for debugging
     def print_page_range(self):
@@ -52,16 +46,9 @@ class Page_Range:
     
     def get_base_page_index(self, rid):
         return rid // (PAGE_SIZE // RECORD_SIZE)
-    
-    def get_last_base_page(self):
 
-        # If page range hasn't exceeded base page capacity and the last base page is full,
-        # allocate a new base page
-        if len(self.base_pages[0]) < BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
-            self.__add_base_page()
-            #print('new base page added')
-
-        return [column[-1] for column in self.base_pages]
+    def get_base_physical_offset(self, rid):
+        return rid % (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page_index(self):
         return len(self.base_pages) - 1
@@ -69,12 +56,14 @@ class Page_Range:
     def get_tail_page(self, index):
         return self.tail_pages[index]
     
-    def get_last_tail_page(self):
-        if not self.tail_pages[0][-1].has_capacity():
-            self.__add_tail_page()
-        
-        return [column[-1] for column in self.tail_pages]
+    def get_first_tail_page_with_available_space(self):
+        for page_index, page in enumerate(self.tail_pages[0]):
+            if page.has_capacity():
+                return [column[page_index] for column in self.tail_pages]
 
+        # If no tail page that has space is found
+        return None
+    '''
     def __add_base_page(self):
         for i, page_list in enumerate(self.base_pages):
             page_list.append(Page(len(self.base_pages[0]), self.page_range_index, BASE_PAGE_TYPE, i))
@@ -82,3 +71,4 @@ class Page_Range:
     def __add_tail_page(self):
         for i, page_list in enumerate(self.tail_pages):
             page_list.append(Page(len(self.tail_pages[0]), self.page_range_index, TAIL_PAGE_TYPE, i))
+    '''
