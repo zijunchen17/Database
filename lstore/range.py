@@ -5,11 +5,15 @@ import math
 class Page_Range:
 
     def __init__(self, table_name, page_range_index, all_columns):
+        self.table_name = table_name
+
         self.page_range_index = page_range_index
 
-        self.base_pages = [[Page(table_name, 0, self.page_range_index, BASE_PAGE_TYPE, i)] for i in range(all_columns)]
+        self.all_columns = all_columns
 
-        self.tail_pages = [[Page(table_name, 0, self.page_range_index, TAIL_PAGE_TYPE, i)] for i in range(all_columns)]
+        self.base_pages = [[Page(table_name, 0, self.page_range_index, BASE_PAGE_TYPE, i)] for i in range(self.all_columns)]
+
+        self.tail_pages = [[Page(table_name, 0, self.page_range_index, TAIL_PAGE_TYPE, i)] for i in range(self.all_columns)]
 
     def has_capacity(self):
         if len(self.base_pages[0]) == BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
