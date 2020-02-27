@@ -37,9 +37,14 @@ class Cache:
         # Write tail pages of page range to disk, after merge
         def evict_tail_pages(self, key):
                 page_range = self.cache[key]
-                '''
-                write the tail pages of page range to disk
-                '''
+                for i in range(NUM_TAILS_BEFORE_MERGE):
+                        for j in range(all_columns):
+                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                file_offset = i
+                                if os.path.exists(filename):
+                                        file_offset = os.path.getsize() - NUM_TAILS_BEFORE_MERGE + i
+
+                                write_page_to_file(page_range.base_pages[j][i], filename, file_offset)
 
         def __read_disk(self, key):
 
@@ -47,24 +52,34 @@ class Cache:
                 
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(all_columns):
-                                base_page = read_page_from_file('page_range' + key + '/base/column' + str(j), i)
-                                page_range.base_pages[j] = base_page
-                
+                                filename = 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                if os.path.exists(filename):
+                                        file_offset = i
+                                        page_range.base_pages.append( read_page_from_file(filename, file_offset))
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(all_columns):
-                                tail_page = read_page_from_file('page_range' + key + '/tail/column' + str(j), i)
-                                page_range.tail_pages[j] = tail_page
+                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                if os.path.exists(filename):
+                                        file_offset = os.path.getsize() - NUM_TAILS_BEFORE_MERGE + i
+                                        page_range.tail_pages.append( read_page_from_file(filename, file_offset))
+                                else:
+                                        page_range.tail_pages.append( (Page(table_name, i, key, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
+
+                                
                 
                 return page_range
         
         def __write_disk(self, page_range):
-                for i in range(BASE_PAGES_PER_RANGE):
+                for base page in range(BASE_PAGES_PER_RANGE):
                         for j in range(all_columns):
-                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + page_range.page_range_index + '/base/column' + str(j), i)
+                                filename = 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j), i)
                 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(all_columns):
-                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + page_range.page_range_index + '/tail/column' + str(j), i)
+                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                file_offset = i
+                                write_page_to_file(page_range.base_pages[j][i], filename, file_offset)
 
         def __insert(self, key, page_range):
                 # If cache is full, evict oldest unpinned page
