@@ -29,7 +29,8 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key_column):
+    def __init__(self, bufferpool, name, num_columns, key_column):
+        self.bufferpool = bufferpool
         self.name = name
         self.key_column = key_column + 4
         self.num_columns = num_columns
