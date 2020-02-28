@@ -52,18 +52,21 @@ class Page_Range:
     def get_base_page(self, index):
         return [column[index] for column in self.base_pages]
     
-    def get_base_page_index(self, rid):
-        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE)
+    def get_base_page_index(self, base_rid):
+        return (base_rid - 1) // (PAGE_SIZE // RECORD_SIZE)
 
-    def get_base_physical_offset(self, rid):
-        return (rid - 1) % (PAGE_SIZE // RECORD_SIZE)
+    def get_base_physical_offset(self, base_rid):
+        return (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page_index(self):
         return len(self.base_pages) - 1
 
     def get_tail_page(self, index):
-        return self.tail_pages[index]
+        return [column[index] for column in self.tail_pages]
     
+    def get_tail_page_index(self, tail_rid):
+        return (2**64 - tail_rid - PAGE_SIZE // RECORD_SIZE) // (PAGE_SIZE // RECORD_SIZE)**2 % (NUM_TAILS_BEFORE_MERGE * 2)
+
     def get_first_tail_page_with_available_space(self):
         for page_index, page in enumerate(self.tail_pages[0]):
             if page.has_capacity():
