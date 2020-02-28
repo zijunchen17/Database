@@ -65,7 +65,10 @@ class Page_Range:
         return [column[index] for column in self.tail_pages]
     
     def get_tail_page_index(self, tail_rid):
-        return (2**64 - tail_rid - PAGE_SIZE // RECORD_SIZE) // (PAGE_SIZE // RECORD_SIZE)**2 % (NUM_TAILS_BEFORE_MERGE * 2)
+        return (2**64 - tail_rid - 1) // (PAGE_SIZE // RECORD_SIZE) % (NUM_TAILS_BEFORE_MERGE * 2)
+    
+    def get_tail_physical_offset(self, tail_rid):
+        return (2**64 - tail_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
 
     def get_first_tail_page_with_available_space(self):
         for page_index, page in enumerate(self.tail_pages[0]):

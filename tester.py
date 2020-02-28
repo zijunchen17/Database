@@ -46,6 +46,7 @@ for key in records:
         original = records[key].copy()
         records[key][i] = value
         query.update(key, *updated_columns)
+        #query.print()
         record = query.select(key, [1, 1, 1, 1, 1])[0]
         error = False
         for j, column in enumerate(record.columns):
@@ -72,4 +73,4 @@ for c in range(0, grades_table.num_columns):
 
 
 
-query.print()
+

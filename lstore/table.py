@@ -37,7 +37,7 @@ class Table:
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
         self.all_columns = num_columns + 5
         self.base_rid = 1
-        self.tail_rid = (1 << (64 - self.bit_shift)) - 1
+        self.tail_rid = 2**64 - 1
         
         self.page_directory = {}
         self.key_directory = {}
@@ -81,9 +81,10 @@ class Table:
         base_page = page_range.get_base_page(base_page_index)
         base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
         
-        tail_page = page_range.get_first_tail_page_with_available_space()
-        tail_physical_page_offset = tail_page[0].num_records
-        tail_rid = (self.tail_rid << self.bit_shift) + tail_physical_page_offset
+        tail_rid = self.tail_rid
+        tail_page_index = page_range.get_tail_page_index(tail_rid)
+        tail_page = page_range.get_tail_page(tail_page_index)
+        tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
         ##############################
         # Write to tail page
@@ -191,7 +192,7 @@ class Table:
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 tail_page_index = page_range.get_tail_page_index(tail_rid)
                 tail_page = page_range.get_tail_page(tail_page_index)
-                tail_physical_page_offset = self._get_row(tail_rid)
+                tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
                 tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
                 tail_schema = str(tail_schema)
