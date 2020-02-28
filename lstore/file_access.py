@@ -15,7 +15,8 @@ def write_page_to_file(page, filename, file_offset = None):
         else:
             file_offset = 0
 
-    seek_pos = file_offset * PAGE_SIZE
+    seek_pos = file_offset * (PAGE_SIZE + RECORD_SIZE)
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, 'wb') as f:
         f.seek(seek_pos)
         f.write(page.data)
@@ -31,6 +32,8 @@ def read_page_from_file(filename, file_offset):
     temp, page_type = os.path.split(temp)
     temp, page_range_index = os.path.split(temp)
     page = Page(int(page_range_index), page_type, int(column_index))
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, 'rb') as f:
         seek_pos = file_offset * (PAGE_SIZE + RECORD_SIZE)
         f.seek(seek_pos)
