@@ -1,6 +1,7 @@
 import os
 
 from lstore.config import *
+from lstore.utils import parse_page_attributes_from_filename
 from lstore.page import Page
 
 ### write a single physical page() from disk
@@ -38,12 +39,13 @@ def read_page_from_file(filename, file_offset):
     temp, column_index = os.path.split(filename)
     temp, page_type = os.path.split(temp)
     temp, page_range_index = os.path.split(temp)
-    page = Page(int(page_range_index), page_type, int(column_index))
+    attributes = parse_page_attributes_from_filename(filename)
+    page = Page(attributes[0], file_offset, attributes[1], attributes[2], attributes[3])
 
     with open(filename, 'rb') as f:
         seek_pos = file_offset * (PAGE_SIZE + RECORD_SIZE)
         f.seek(seek_pos)
-        page.data = f.read(PAGE_SIZE)
+        page.data = bytearray(f.read(PAGE_SIZE))
         page.num_records = int.from_bytes(f.read(8), BYTE_ORDER)
     return page
 
