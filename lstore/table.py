@@ -48,16 +48,11 @@ class Table:
     def insert(self, schema_encoding, timestamp, *columns):
 
         rid = self.base_rid
+        page_range_index = get_page_range_index(rid)
+        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
+        page_range.get_base_page_index(rid)
         
-        # A new page range is allocated only when the previous ones are full.
-        # If the last page range is full, then a new one must be allocated.
-        if not self.page_ranges[-1].has_capacity():
-            self.page_ranges.append(Page_Range(self.name, len(self.page_ranges), self.all_columns))
-        
-        # A new base page is allocated only when the previous ones are full.
-        # If the last base page is full, then a new one must be allocated.
-        base_page = self.page_ranges[-1].get_last_base_page()
-        physical_page_offset = (rid - 1) % (PAGE_SIZE // RECORD_SIZE)
+
 
         base_page[INDIRECTION_COLUMN].write(0)
         base_page[RID_COLUMN].write(rid)
