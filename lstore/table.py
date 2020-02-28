@@ -211,9 +211,10 @@ class Table:
         # go straight to the page needed. Other todo in query.select().
         pass
 
+        
 
     ## select the record having the latest values
-    def select(self, key, key_column, query_columns):
+    def select(self, key, query_columns):
         
         if key in self.key_directory:
             base_rid = self.key_directory[key]
