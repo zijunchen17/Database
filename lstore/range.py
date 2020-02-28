@@ -42,7 +42,7 @@ class Page_Range:
 
             
     def get_base_page(self, index):
-        return self.base_pages[index]
+        return [column[index] for column in self.base_pages]
     
     def get_base_page_index(self, rid):
         return rid // (PAGE_SIZE // RECORD_SIZE)
