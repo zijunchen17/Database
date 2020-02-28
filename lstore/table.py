@@ -168,13 +168,8 @@ class Table:
 
 
     ## select the record having the latest values
-<<<<<<< HEAD
     def select(self, key, query_columns):
         
-=======
-    def select(self, select_index, key, query_columns):
-        #self.page_ranges[-1].print_page_range()
->>>>>>> r/w files without bufferpool
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             page_range_index = get_page_range_index(base_rid)
@@ -294,8 +289,118 @@ class Table:
                         'file_directory': self.file_directory}
         return table_schema
 
-    def __merge(self):
-        pass
+    def __merge(self, range_index):
+        """
+
+        """
+        if self.page_ranges[range_index].check_merge:
+            tail_len = len(self.page_ranges[range_index].tail_pages[0][:-1])
+            if tail_len >= MERGE_SIZE and tail_len % MERGE_SIZE == 0:
+                ########
+                # trig merge
+                ########
+                tails_to_merge = [each_page[-1 - MERGE_SIZE:-1] for each_page in
+                                  self.page_ranges[range_index].tail_pages[-1 - self.num_columns:-1]]
+                tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
+                base_copy = copy.deepcopy(self.page_ranges[range_index].base_pages)
+                base_copy = self.merge_in_process(base_copy, tails_to_merge)
+                ########
+                # change merge trigger back
+                ########
+                self.page_ranges[range_index].check_merge = False
+            else:
+                self.page_ranges[range_index].check_merge = False
+            pass
+        else:
+            pass
+
+    @staticmethod
+    def _get_location_record(baserid_list, base_rid):
+        """
+        find rows of records with the same BaseRID in one set of tail pages
+        """
+        record_location = [i for i, x in enumerate(baserid_list) if x == base_rid]
+        return record_location
+
+    @staticmethod
+    def _latest_per_rid_per_col_per_tail(record_location, per_col_per_tail):
+        """
+        get latest record in one tail page for a column which schema_ecode is 1
+        """
+        updates_each_rid = [per_col_per_tail.read(row) for row in record_location][::-1]  # from latest to oldest
+        ltst_col_rcd = next((x for i, x in enumerate(updates_each_rid) if x != SPECIAL_NULL_VALUE), SPECIAL_NULL_VALUE)
+        return ltst_col_rcd
+
+    def _latest_per_rid_per_col(self, base_rid, tails_one_col, baserid_in_all_tails):
+        """
+        get the latest record in all tail pages for one column which schema_encode is 1
+        """
+        updated_retrieved = SPECIAL_NULL_VALUE
+        for i in range(MERGE_SIZE):
+            baserid_list = baserid_in_all_tails[i]
+            record_location = self._get_location_record(baserid_list, base_rid)
+            if len(record_location) != 0:
+                updated_retrieved = self._latest_per_rid_per_col_per_tail(record_location, tails_one_col[i])
+                if updated_retrieved != SPECIAL_NULL_VALUE:
+                    return updated_retrieved
+        return updated_retrieved
+
+    @staticmethod
+    def schema_vector(base_schema):
+        """
+        return vector like [0,1,1,0...]
+        """
+        get_bin = lambda x: format(x, '05b')
+        base_schema = get_bin(base_schema)
+        return [int(x == '1') for i, x in enumerate(base_schema)]
+
+    @staticmethod
+    def get_basepage_index(rid):
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE - 1) % BASE_PAGES_PER_RANGE
+
+    @staticmethod
+    def get_base_row(rid):
+        return (rid - 1) % (PAGE_SIZE // RECORD_SIZE)
+
+    @staticmethod
+    def baserid_in_per_tail(baserid_one_tail):
+        baserid_list = [baserid_one_tail.read(row) for row in range(PAGE_SIZE // RECORD_SIZE)]
+        return baserid_list
+
+    def baserid_in_all_tails(self, baserid_all_tails):
+        baserid_list_list = [self.baserid_in_per_tail(baserid_one_tail) for baserid_one_tail in baserid_all_tails]
+        baserid_all = set().union(*baserid_list_list)
+        return baserid_all, baserid_list_list
+
+    def merge_in_process(self, base_copy, tails_to_merge):
+        baserid_all, baserid_list_list = self.baserid_in_all_tails(tails_to_merge[TAIL_BASE_RID_COLUMN])
+        baserid_all.discard(0)
+        for base_rid in baserid_all:
+            base_page_index = self.get_basepage_index(base_rid)
+            base_row = self.get_base_row(base_rid)
+            base_schema = base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].read(base_row)
+            base_vector = self.schema_vector(base_schema)
+            tails_to_merge_ext = tails_to_merge[-1 - self.num_columns:-1]
+            #######
+            # go merge
+            #######
+            latest_update = []
+            for i in range(self.num_columns):
+                if base_vector[i]:
+                    ltst_rcd_pe_col = self._latest_per_rid_per_col(base_rid, tails_to_merge_ext[i - 1],
+                                                                   baserid_list_list)
+                    latest_update.append(ltst_rcd_pe_col)
+                else:
+                    latest_update.append(SPECIAL_NULL_VALUE)
+            ###########
+            # over write base copy
+            ###########
+            for i, col in enumerate(latest_update):
+                if col != SPECIAL_NULL_VALUE:
+                    base_copy[i + 4][base_page_index].write(col, base_row)
+            base_copy[SCHEMA_ENCODING_COLUMN][base_page_index] = int('0' * self.num_columns)
+            return base_copy
+
 
     #### close/open table without bufferpool
     #### write all base pages and tail pages into the disk files
