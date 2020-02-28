@@ -2,6 +2,7 @@ from lstore.page import *
 from lstore.range import *
 from time import time
 from lstore.config import *
+from lstore.utils import *
 import math
 import copy
 
@@ -21,6 +22,10 @@ class Record:
         self.key = key
         self.columns = columns
 
+    def __str__(self):
+        return str(self.columns)
+
+
 class Table:
 
     """
@@ -28,10 +33,12 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, name, num_columns, key_column):
+    def __init__(self, name, num_columns, key_index, file_directory):
         self.name = name
-        self.key_column = key_column + 4
+        self.key_index = key_index
+        self.key_column = key_index + 4
         self.num_columns = num_columns
+        self.file_directory = file_directory
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
         self.all_columns = num_columns + 5
         self.base_rid = 1
@@ -84,13 +91,12 @@ class Table:
         tail_physical_page_offset = tail_page[0].num_records
         tail_rid = (self.tail_rid << self.bit_shift) + tail_physical_page_offset
 
-        ##############################
-        # Write to tail page
-        ##############################
+    
 
         tail_page[INDIRECTION_COLUMN].write(0)
         tail_page[RID_COLUMN].write(tail_rid)
         tail_page[TIMESTAMP_COLUMN].write(timestamp)
+
 
         # Create schema encoding and write to columns.
         tail_schema = ''
@@ -163,7 +169,7 @@ class Table:
 
 
     ## select the record having the latest values
-    def select(self, key, query_columns):
+    def select(self, select_index, key, query_columns):
         #self.page_ranges[-1].print_page_range()
         if key in self.key_directory:
             base_rid = self.key_directory[key]
@@ -258,7 +264,8 @@ class Table:
         for key in range(start_range, end_range+1):
 
             if key in self.key_directory:
-                record_list = self.select(key, query_columns)
+                select_index = 0
+                record_list = self.select(key, select_index, query_columns)
                 record = record_list[0]
                 value = record.columns[0]
                 column_value.append(value)
@@ -268,7 +275,49 @@ class Table:
 
         return sum(column_value)
 
+    def get_table_schema(self):
+        table_schema = {'name': self.name,
+                        'num_columns': self.num_columns,
+                        'key_index': self.key_index,
+                        'file_directory': self.file_directory}
+        return table_schema
+
     def __merge(self):
         pass
+
+    #### close/open table without bufferpool
+    #### write all base pages and tail pages into the disk files
+    def close(self):
+        for page_range in self.page_ranges:
+            self.__write_page_range(page_range, BASE_PAGE_TYPE)
+            self.__write_page_range(page_range, TAIL_PAGE_TYPE)
+    
+    ### write page range back to file
+    def __write_page_range(self, page_range, page_type):
+        pages = eval("page_range." + page_type + "_pages") 
+        all_rids = self.__read__all_rids(page_range, page_type)
+        for c in range(self.all_columns):
+            for i, page in enumerate(pages[c]):
+                # if len(all_rids[i]) != 0:
+                filename = get_filepath(self.name, page)
+                offset = write_page_to_file(page, filename, None)
+                update_file_directory(self, all_rids[i], offset, page)
+        
+
+    ### read all rids for each page range
+    def __read__all_rids(self, page_range, page_type):
+        all_rids = []
+        pages = eval("page_range." + page_type + "_pages")
+        for page in pages[RID_COLUMN]:
+            all_rids.append(self._read_one_page(page))
+        return all_rids
+
+    ### read one whole/entie page 
+    def _read_one_page(self, page):
+        result = []
+        for i in range(page.num_records):
+            result.append(page.read(i))
+        return result
+
 
 

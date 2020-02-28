@@ -20,11 +20,12 @@ class Page:
         self.column_index = column_index
         self.record_size = RECORD_SIZE
         self.page_size = PAGE_SIZE
+        self.data = bytearray(4096)
         self.num_records = 0
-        self.data = bytearray(self.page_size)
     
     @property  
     def __pos(self):
+
         return self.num_records * self.record_size
 
     def has_capacity(self):
@@ -54,3 +55,14 @@ class Page:
     def update(self, value_update, row):
         b_value = value_update.to_bytes(self.record_size, byteorder=BYTE_ORDER)
         self.data[row * self.record_size:(row+1) * self.record_size] = b_value
+
+
+    # def load_data(self,data):
+    #   self.data = data
+    #   if self.data.index(b'\x00'):
+    #     self.num_records = self.data.index(b'\x00\x00\x00')
+    #   else:
+    #     self.num_records = 512
+
+
+

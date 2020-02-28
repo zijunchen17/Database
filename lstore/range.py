@@ -13,11 +13,11 @@ class Page_Range:
     def has_capacity(self):
         if len(self.base_pages[0]) == BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
             return False
-
         return True
     
     # Method for printing out the contents of a page range, useful for debugging
     def print_page_range(self):
+    
         print("base page index:", self.base_pages[0][-1].page_index)
         print('base page column index', self.base_pages[1][-1].column_index)
         print('base page type', self.base_pages[0][-1].page_type)
@@ -49,11 +49,10 @@ class Page_Range:
         return rid // (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page(self):
-
         # If page range hasn't exceeded base page capacity and the last base page is full,
         # allocate a new base page
         if len(self.base_pages[0]) < BASE_PAGES_PER_RANGE and not self.base_pages[0][-1].has_capacity():
-            self.__add_base_page()
+            self.add_base_page()
             #print('new base page added')
 
         return [column[-1] for column in self.base_pages]
@@ -66,14 +65,13 @@ class Page_Range:
     
     def get_last_tail_page(self):
         if not self.tail_pages[0][-1].has_capacity():
-            self.__add_tail_page()
-        
+            self.add_tail_page()
         return [column[-1] for column in self.tail_pages]
 
-    def __add_base_page(self):
+    def add_base_page(self):
         for i, page_list in enumerate(self.base_pages):
             page_list.append(Page(len(self.base_pages[0]), self.page_range_index, BASE_PAGE_TYPE, i))
 
-    def __add_tail_page(self):
+    def add_tail_page(self):
         for i, page_list in enumerate(self.tail_pages):
             page_list.append(Page(len(self.tail_pages[0]), self.page_range_index, TAIL_PAGE_TYPE, i))
