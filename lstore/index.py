@@ -13,7 +13,6 @@ class Index:
         self.create_index(table.key_column)
 
     def locate(self, column, value):
-        ''' ###Returns the location of all records with the given value on column "column" '''
         ''' Returns the RIDs of all records with provided value in specified column. '''
         if not self.has_index(column):
             print(f"Column {column} hasn't been indexed")
