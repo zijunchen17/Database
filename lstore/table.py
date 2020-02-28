@@ -70,6 +70,7 @@ class Table:
         self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
         
         self.base_rid += 1
+        page_range.pinned = False
 
     def update(self, key, timestamp, *columns):
 

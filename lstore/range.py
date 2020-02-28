@@ -11,6 +11,10 @@ class Page_Range:
 
         self.all_columns = all_columns
 
+        self.pinned = False
+
+        self.dirty = False
+
         self.base_pages = [ [] for _ in range(self.all_columns)]
 
         self.tail_pages = [ [] for _ in range(self.all_columns)]
