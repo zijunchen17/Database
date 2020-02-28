@@ -22,9 +22,9 @@ for i in range(0, 1000):
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
     print('inserted', records[key])
-query.print()
 db.close()
 db.open()
+
 for key in records:
     record = query.select(key, [1, 1, 1, 1, 1])[0]
     error = False
@@ -54,6 +54,8 @@ for key in records:
         else:
             print('update on', original, 'and', updated_columns, ':', record.columns) 
         updated_columns[i] = None
+
+query.print()
 
 keys = sorted(list(records.keys()))
 for c in range(0, grades_table.num_columns):
