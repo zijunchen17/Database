@@ -166,8 +166,14 @@ class Table:
         
         if key in self.key_directory:
             base_rid = self.key_directory[key]
-            base_page = self.page_directory[base_rid]
-            base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
+            page_range_index = get_page_range_index(base_rid)
+
+            page_range = self.bufferpool.get_page_range(self, page_range_index)
+            
+            base_page_index = page_range.get_base_page_index(base_rid)
+            base_page = page_range.get_base_page(base_page_index)
+            base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
+
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             base_schema = format(base_schema, "b")
             base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
@@ -183,8 +189,10 @@ class Table:
 
 
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
-                tail_page = self.page_directory[tail_rid]
+                tail_page_index = page_range.get_tail_page_index(tail_rid)
+                tail_page = page_range.get_tail_page(tail_page_index)
                 tail_physical_page_offset = self._get_row(tail_rid)
+
                 tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
                 tail_schema = str(tail_schema)
                 tail_schema = '0' * (self.num_columns - len(tail_schema)) + tail_schema
