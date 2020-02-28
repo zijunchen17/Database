@@ -49,6 +49,7 @@ class Cache:
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for column in page_range.tail_pages:
                                 column.pop(0)
+                                column.append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
                                          
 
         def __read_disk(self, table: Table, page_range_index):
