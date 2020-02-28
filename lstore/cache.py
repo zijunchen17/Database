@@ -79,6 +79,7 @@ class Cache:
                 return page_range
         
         def __write_disk(self, page_range):
+                print('page range index:', page_range.page_range_index)
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(page_range.all_columns):
                                 filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
