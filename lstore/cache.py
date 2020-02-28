@@ -45,9 +45,10 @@ class Cache:
                                         file_offset = os.path.getsize() // (PAGE_SIZE + 8)
 
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
-
-                for column in page_range.tail_pages:
-                        column.pop(0)
+                
+                for i in range(NUM_TAILS_BEFORE_MERGE):
+                        for column in page_range.tail_pages:
+                                column.pop(0)
                                          
 
         def __read_disk(self, table: Table, page_range_index):
