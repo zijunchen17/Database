@@ -53,6 +53,7 @@ class Index:
             self.indices[column_number] = IOBTree.IOBTree()
             col_selector = [0]*self.table.num_columns
             col_selector[column_number] = 1
+            
             for key in self.table.key_directory:
                 self.add_to_index(column_number, self.table.select(key,col_selector)[0], self.table.key_directory[key])
         else:
