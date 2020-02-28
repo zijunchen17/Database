@@ -39,7 +39,7 @@ class Cache:
                 page_range = self.cache[key]
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(all_columns):
-                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
                                         file_offset = os.path.getsize() // (PAGE_SIZE + 8)
@@ -56,7 +56,7 @@ class Cache:
                 
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(page_range.all_columns):
-                                filename = 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
                                 if os.path.exists(filename):
                                         file_offset = i
                                         page_range.base_pages[j].append(read_page_from_file(filename, file_offset))
@@ -65,7 +65,7 @@ class Cache:
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
-                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 if os.path.exists(filename):
                                         file_offset = os.path.getsize() // (PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
                                         page_range.tail_pages[j].append( read_page_from_file(filename, file_offset))
@@ -81,12 +81,12 @@ class Cache:
         def __write_disk(self, page_range):
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(page_range.all_columns):
-                                filename = 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
-                                write_page_to_file(page_range.base_pages[j][i], 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j), i)
+                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                write_page_to_file(page_range.base_pages[j][i], '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j), i)
                 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
-                                filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
                                         file_offset = file_offset = os.path.getsize() // (PAGE_SIZE + 8)
@@ -112,7 +112,7 @@ class Cache:
         
         # Pass in a table name and page range index, and True if the page range will be written to
         def get_page_range(self, table: Table, page_range_index, write = False):
-                
+
                 # Construct key from table name and page range index
                 key = str(table.name) + '/page_range' + str(page_range_index)
 
@@ -140,6 +140,6 @@ class Cache:
         # !!! Only close cache when no queries running !!!
         def close_cache(self):
                 while self.cache: # As long as cache isn't empty, pop and write each page to disk
-                        page_range = self.cache.popitem(False) # False means pop oldest item
+                        page_range = self.cache.popitem(False)[1] # False means pop oldest item
                         if page_range.dirty == True:
                                 self.__write_disk(page_range)
