@@ -39,7 +39,7 @@ class Cache:
                 page_range = self.cache[key]
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(all_columns):
-                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
                                         file_offset = os.path.getsize() // (PAGE_SIZE + 8)
@@ -56,7 +56,7 @@ class Cache:
                 
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(page_range.all_columns):
-                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
                                 if os.path.exists(filename):
                                         file_offset = i
                                         page_range.base_pages[j].append(read_page_from_file(filename, file_offset))
@@ -65,9 +65,9 @@ class Cache:
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
-                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 if os.path.exists(filename):
-                                        file_offset = os.path.getsize() // (PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
+                                        file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
                                         page_range.tail_pages[j].append( read_page_from_file(filename, file_offset))
                                 else:
                                         page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
@@ -81,15 +81,15 @@ class Cache:
         def __write_disk(self, page_range):
                 for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(page_range.all_columns):
-                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
-                                write_page_to_file(page_range.base_pages[j][i], '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j), i)
+                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
+                                write_page_to_file(page_range.base_pages[j][i], filename, i)
                 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
-                                filename = '/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
+                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
-                                        file_offset = file_offset = os.path.getsize() // (PAGE_SIZE + 8)
+                                        file_offset = file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
 
                                 write_page_to_file(page_range.base_pages[j][i], filename, file_offset)
 
