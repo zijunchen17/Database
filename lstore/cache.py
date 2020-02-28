@@ -1,6 +1,5 @@
-from lstore.db import Database
-from lstore.table import *
-from lstore.page import *
+from lstore.table import Table
+from lstore.page import Page
 from lstore.config import *
 from lstore.file_access import *
 from collections import OrderedDict
@@ -46,7 +45,9 @@ class Cache:
 
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
 
-                        page_range.tail_pages.pop(0)                  
+                for column in page_range.tail_pages:
+                        column.pop(0)
+                                         
 
         def __read_disk(self, table: Table, page_range_index):
 
@@ -57,22 +58,22 @@ class Cache:
                                 filename = 'page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
                                 if os.path.exists(filename):
                                         file_offset = i
-                                        page_range.base_pages.append(read_page_from_file(filename, file_offset))
+                                        page_range.base_pages[j].append(read_page_from_file(filename, file_offset))
                                 else:
-                                        page_range.base_pages.append(Page(page_range.table_name, i, page_range.page_range_index, 'base', j, False, False, PAGE_SIZE, RECORD_SIZE))
+                                        page_range.base_pages[j].append(Page(page_range.table_name, i, page_range.page_range_index, 'base', j, False, False, PAGE_SIZE, RECORD_SIZE))
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
                                 filename = 'page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 if os.path.exists(filename):
                                         file_offset = os.path.getsize() // (PAGE_SIZE + 8) - NUM_TAILS_BEFORE_MERGE + i
-                                        page_range.tail_pages.append( read_page_from_file(filename, file_offset))
+                                        page_range.tail_pages[j].append( read_page_from_file(filename, file_offset))
                                 else:
-                                        page_range.tail_pages.append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
+                                        page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(all_columns):                      
-                                page_range.tail_pages.append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
+                                page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
                 
                 return page_range
         
