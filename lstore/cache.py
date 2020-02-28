@@ -1,4 +1,5 @@
 from lstore.table import Table
+from lstore.range import Page_Range
 from lstore.page import Page
 from lstore.config import *
 from lstore.file_access import *
@@ -72,7 +73,7 @@ class Cache:
                                         page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
-                        for j in range(all_columns):                      
+                        for j in range(page_range.all_columns):                      
                                 page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
                 
                 return page_range
@@ -98,7 +99,7 @@ class Cache:
                         self.__evict()
                 
                 # If cache is no longer full, start insertion process
-                if self.__num_page_ranges_in_cache < CACHE_SIZE:
+                if self.__num_page_ranges_in_cache() < CACHE_SIZE:
                         self.cache[key] = page_range
 
                 else: # All page ranges in cache are pinned, can't insert a new page into cache
@@ -111,9 +112,9 @@ class Cache:
         
         # Pass in a table name and page range index, and True if the page range will be written to
         def get_page_range(self, table: Table, page_range_index, write = False):
-
+                
                 # Construct key from table name and page range index
-                key = str(table.table_name) + '/page_range' + str(page_range_index)
+                key = str(table.name) + '/page_range' + str(page_range_index)
 
                 # Check if page range being accessed is already in cache
                 # Grab the page range, take it out of cache and reinsert

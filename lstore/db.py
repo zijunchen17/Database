@@ -5,7 +5,7 @@ class Database():
 
     def __init__(self):
         self.tables = []
-        self.bufferpool = None
+        self.open()
         pass
 
     def open(self):

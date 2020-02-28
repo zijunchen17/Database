@@ -39,7 +39,6 @@ class Table:
         self.base_rid = 1
         self.tail_rid = (1 << (64 - self.bit_shift)) - 1
         
-        self.page_ranges = [Page_Range(self.name, len(self.page_ranges), self.all_columns)]
         self.page_directory = {}
         self.key_directory = {}
 
@@ -48,10 +47,14 @@ class Table:
     def insert(self, schema_encoding, timestamp, *columns):
 
         rid = self.base_rid
+
         page_range_index = get_page_range_index(rid)
         page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
         page_range.get_base_page_index(rid)
         
+        base_page_index = page_range.get_base_page_index(rid)
+        base_page = page_range.get_base_page(base_page_index)
+        base_physical_page_offset = page_range.get_base_physical_offset(rid)
 
 
         base_page[INDIRECTION_COLUMN].write(0)
@@ -64,11 +67,9 @@ class Table:
             base_page[i+4].write(column)
         
         self.page_directory[rid] = base_page
-        self.key_directory[base_page[self.key_column].read(physical_page_offset)] = rid
-        #print('reading at', physical_page_offset)
-        #print(base_page[INDIRECTION_COLUMN].read(physical_page_offset), base_page[RID_COLUMN].read(physical_page_offset), base_page[TIMESTAMP_COLUMN].read(physical_page_offset), base_page[SCHEMA_ENCODING_COLUMN].read(physical_page_offset), base_page[4].read(physical_page_offset), base_page[5].read(physical_page_offset), base_page[6].read(physical_page_offset), base_page[7].read(physical_page_offset), base_page[8].read(physical_page_offset))
+        self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
+        
         self.base_rid += 1
-        #self.page_ranges[-1].print_page_range()
 
     def update(self, key, timestamp, *columns):
 
