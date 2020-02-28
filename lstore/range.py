@@ -21,6 +21,7 @@ class Page_Range:
     
     # Method for printing out the contents of a page range, useful for debugging
     def print_page_range(self):
+    
         print("base page index:", self.base_pages[0][-1].page_index)
         print('base page column index', self.base_pages[1][-1].column_index)
         print('base page type', self.base_pages[0][-1].page_type)
@@ -82,7 +83,7 @@ class Page_Range:
         for i, page_list in enumerate(self.base_pages):
             page_list.append(Page(len(self.base_pages[0]), self.page_range_index, BASE_PAGE_TYPE, i))
 
-    def __add_tail_page(self):
+    def add_tail_page(self):
         for i, page_list in enumerate(self.tail_pages):
             page_list.append(Page(len(self.tail_pages[0]), self.page_range_index, TAIL_PAGE_TYPE, i))
     '''

@@ -8,6 +8,7 @@ from random import choice, randint, sample, seed
 # Student Id and 4 grades
 # init()
 db = Database()
+db.open('~/ECS165')
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
 
@@ -72,5 +73,5 @@ for c in range(0, grades_table.num_columns):
             print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 
 
-
+db.close()
 
