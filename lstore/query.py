@@ -60,5 +60,6 @@ class Query:
         return self.table.sum(start_range, end_range, aggregate_column_index)
     
     def print(self):
-        for range in self.table.page_ranges:
-            range.print_page_range()
+        page_range = self.table.bufferpool.get_page_range(self.table, 0)
+        page_range.print_page_range()
+

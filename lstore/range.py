@@ -11,9 +11,9 @@ class Page_Range:
 
         self.all_columns = all_columns
 
-        self.base_pages = []
+        self.base_pages = [ [] for _ in range(self.all_columns)]
 
-        self.tail_pages = []
+        self.tail_pages = [ [] for _ in range(self.all_columns)]
     
     # Method for printing out the contents of a page range, useful for debugging
     def print_page_range(self):
@@ -45,10 +45,10 @@ class Page_Range:
         return [column[index] for column in self.base_pages]
     
     def get_base_page_index(self, rid):
-        return rid // (PAGE_SIZE // RECORD_SIZE)
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE)
 
     def get_base_physical_offset(self, rid):
-        return rid % (PAGE_SIZE // RECORD_SIZE)
+        return (rid - 1) % (PAGE_SIZE // RECORD_SIZE)
     
     def get_last_base_page_index(self):
         return len(self.base_pages) - 1
