@@ -92,7 +92,7 @@ class Cache:
                                 if os.path.exists(filename):
                                         file_offset = file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
 
-                                write_page_to_file(page_range.base_pages[j][i], filename, file_offset)
+                                write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
 
         def __insert(self, key, page_range):
                 # If cache is full, evict oldest unpinned page
