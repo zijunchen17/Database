@@ -79,7 +79,7 @@ class Table:
         
         base_page_index = page_range.get_base_page_index(base_rid)
         base_page = page_range.get_base_page(base_page_index)
-        base_physical_page_offset = page_range.get_base_physical_offset(rid)
+        base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
         
         tail_page = page_range.get_first_tail_page_with_available_space()
         tail_physical_page_offset = tail_page[0].num_records
@@ -163,7 +163,7 @@ class Table:
 
     ## select the record having the latest values
     def select(self, key, query_columns):
-        #self.page_ranges[-1].print_page_range()
+        
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             base_page = self.page_directory[base_rid]
