@@ -53,7 +53,7 @@ class Table:
 
         pass
 
-    def insert(self, schema_encoding, timestamp, *columns):
+    def insert(self, key_column, schema_encoding, timestamp, *columns):
 
         rid = self.base_rid
 
@@ -213,9 +213,8 @@ class Table:
 
 
     ## select the record having the latest values
-    def select(self, key, query_columns):
-        # if self.flag:
-        #     import pdb; pdb.set_trace()
+    def select(self, key, key_column, query_columns):
+        
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             page_range_index = get_page_range_index(base_rid)

@@ -50,7 +50,7 @@ class Query:
         for rid in matching_rids:
             self.table.quick_select(rid, query_columns)
         # TODO: At least partially select() Other todo in quick_select()
-        return self.table.select(key, query_columns)
+        return self.table.select(key, key_column, query_columns)
 
     
 
