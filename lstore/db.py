@@ -1,15 +1,19 @@
 from lstore.table import Table
+from lstore.cache import Cache
 
 class Database():
 
     def __init__(self):
         self.tables = []
+        self.bufferpool = None
         pass
 
     def open(self):
+        self.bufferpool = Cache()
         pass
 
     def close(self):
+        self.bufferpool.close_cache()
         pass
 
     """
@@ -20,7 +24,7 @@ class Database():
     """
     def create_table(self, name, num_columns, key):
         ## key = primary key (unique)
-        table = Table(name, num_columns, key)
+        table = Table(self.bufferpool, name, num_columns, key)
         return table
 
     """
