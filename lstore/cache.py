@@ -51,7 +51,7 @@ class Cache:
                                          
 
         def __read_disk(self, table: Table, page_range_index):
-
+                print("I just read the disk")
                 page_range = Page_Range(table.name, page_range_index, table.all_columns)
                 
                 for i in range(BASE_PAGES_PER_RANGE):

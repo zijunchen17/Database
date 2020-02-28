@@ -50,7 +50,6 @@ class Table:
 
         page_range_index = get_page_range_index(rid)
         page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
-        page_range.get_base_page_index(rid)
         
         base_page_index = page_range.get_base_page_index(rid)
         base_page = page_range.get_base_page(base_page_index)
@@ -74,12 +73,15 @@ class Table:
 
     def update(self, key, timestamp, *columns):
 
-        
-
         base_rid = self.key_directory[key]
-        range_index = base_rid // PAGE_RANGE_SIZE
+        page_range_index = get_page_range_index(base_rid)
+        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
         
-        tail_page = self.page_ranges[range_index].get_last_tail_page()
+        base_page_index = page_range.get_base_page_index(base_rid)
+        base_page = page_range.get_base_page(base_page_index)
+        base_physical_page_offset = page_range.get_base_physical_offset(rid)
+        
+        tail_page = page_range.get_first_tail_page_with_available_space()
         tail_physical_page_offset = tail_page[0].num_records
         tail_rid = (self.tail_rid << self.bit_shift) + tail_physical_page_offset
 
@@ -103,28 +105,21 @@ class Table:
 
         # Set tail's schema
         tail_page[SCHEMA_ENCODING_COLUMN].write(int(tail_schema))
-        
-        self.page_directory[tail_rid] = tail_page
-
 
         ##############################
         # Associate with base page
         ##############################
 
         # Fetch base_indirection, base_row, base_schema, and page_list
-        base_page = self.page_directory[base_rid]
-        base_physical_page_offset = (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
         base_indirection_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
         base_page_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
 
         # Point the tail record to its base record
         tail_page[TAIL_BASE_RID_COLUMN].write(base_rid, tail_physical_page_offset)
 
-        # If base_indirection is not 0 (has existing tail records), 
-        # set base_indirection to rid of new tail record
-        #if base_indirection_rid != 0:
+        # Set indirection of the new tail record to point to the most recent (last) tail record
+        # If the new tail record is the first tail record, then its indirection will be set to 0
         latest_tail_rid = base_indirection_rid
-        #print(latest_tail_rid)
         tail_page[INDIRECTION_COLUMN].write(latest_tail_rid, tail_physical_page_offset)
 
         # Add tail_rid to base_page's indirection
@@ -134,8 +129,13 @@ class Table:
         # Update base_page's schema
         tail_schema = int(tail_schema,2)
         new_base_schema = base_page_schema|tail_schema
-        base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
+        base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)\
+        
+        # Add tail page to page directory
+        self.page_directory[tail_rid] = tail_page
+
         self.tail_rid -= 1
+        page_range.pinned = False
         
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
