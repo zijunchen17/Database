@@ -27,7 +27,7 @@ for i in range(0, 1000):
 # db.open('~/ECS165')
 
 for key in records:
-    record = query.select(key, [1, 1, 1, 1, 1])[0]
+    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
     error = False
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
@@ -48,7 +48,7 @@ for key in records:
         records[key][i] = value
         query.update(key, *updated_columns)
         #query.print()
-        record = query.select(key, [1, 1, 1, 1, 1])[0]
+        record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
         error = False
         for j, column in enumerate(record.columns):
             if column != records[key][j]:
