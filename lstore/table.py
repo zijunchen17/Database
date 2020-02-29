@@ -214,10 +214,17 @@ class Table:
         
 
     ## select the record having the latest values
-    def select(self, key, query_columns):
-        
-        if key in self.key_directory:
-            base_rid = self.key_directory[key]
+    def select(self, key, query_columns, rid_provided = False):
+        #rid is passed in instead from query select using index
+
+        if key in self.key_directory or rid_provided:
+
+            if not rid_provided:
+                base_rid = self.key_directory[key]
+            else:
+                base_rid = key
+            # print(key, "instead of", self.key_directory[key])
+            
             page_range_index = get_page_range_index(base_rid)
 
             page_range = self.bufferpool.get_page_range(self, page_range_index)
@@ -227,14 +234,21 @@ class Table:
             base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+            # page_range.print_page_range()
+            print("base_rid", base_rid)
+            print("fetched:",base_schema)
             # if self.flag:
             #     import pdb; pdb.set_trace()
-            base_schema = format(base_schema, "b")
-            base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
+            # print("first schema:", base_schema)
+            base_schema = format(base_schema, "05b")
+            # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
             
 
             cur_columns = [None] * self.num_columns
 
+            print(query_columns)
+            print(base_schema)
+            print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
