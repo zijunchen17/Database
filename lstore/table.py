@@ -34,19 +34,20 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, bufferpool, name, num_columns, key_column):
+    def __init__(self, bufferpool, name, num_columns, key_index, key_directory, base_rid = 1, tail_rid = 2**64 - 2):
+
         self.bufferpool = bufferpool
         self.name = name
-        self.key_column = key_column
-        self.key_column = self.key_column + 4
+        self.key_index = key_index
+        self.key_column = key_index + 4
         self.num_columns = num_columns
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
         self.all_columns = num_columns + 5
-        self.base_rid = 1
-        self.tail_rid = 2**64 - 2
+        self.base_rid = base_rid
+        self.tail_rid = tail_rid
         
         self.page_directory = {}
-        self.key_directory = {}
+        self.key_directory = key_directory
 
         self.flag = False
 
@@ -331,7 +332,9 @@ class Table:
         table_schema = {'name': self.name,
                         'num_columns': self.num_columns,
                         'key_index': self.key_index,
-                        'file_directory': self.file_directory}
+                        'key_directory': self.key_directory,
+                        'base_rid': self.base_rid,
+                        'tail_rid': self.tail_rid}
         return table_schema
 
     def __merge(self, page_range):

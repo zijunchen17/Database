@@ -40,6 +40,7 @@ class Page_Range:
         for j, page in enumerate(self.base_pages[0]):
             for i in range(0, PAGE_SIZE // RECORD_SIZE):
                 for k in range(self.all_columns):
+                    # import pdb; pdb.set_trace()
                     print(self.base_pages[k][j].read(i),end=' ')
                 print('\n',end='')
             print(f'=============base page{j} break====================')
