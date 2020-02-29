@@ -5,6 +5,7 @@ from lstore.config import *
 from lstore.utils import *
 import math
 import copy
+import threading
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -99,6 +100,8 @@ class Table:
             page_range.merging = True
             print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
             self.__merge(page_range)
+            # x = threading.Thread(target=self.__merge, args=(page_range))
+            # x.start()
             self.flag = True
 
 
