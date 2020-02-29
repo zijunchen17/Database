@@ -5,15 +5,17 @@ class Database():
 
     def __init__(self):
         self.tables = []
-        self.open()
+        self.db_name = '&&'
         pass
 
-    def open(self):
+    def open(self, db_name):
+        self.db_name = db_name
         self.bufferpool = Cache()
         pass
 
     def close(self):
         self.bufferpool.close_cache()
+        self.db_name = '&&'
         pass
 
     """
@@ -24,7 +26,7 @@ class Database():
     """
     def create_table(self, name, num_columns, key_index):
         ## key = primary key (unique)
-        table = Table(self.bufferpool, name, num_columns, key)
+        table = Table(self.bufferpool, name, num_columns, key_index)
         return table
 
     """

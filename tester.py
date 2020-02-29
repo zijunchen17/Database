@@ -24,7 +24,7 @@ for i in range(0, 1000):
     query.insert(*records[key])
     print('inserted', records[key])
 db.close()
-db.open()
+db.open('~/ECS165')
 
 for key in records:
     record = query.select(key, [1, 1, 1, 1, 1])[0]
@@ -37,7 +37,7 @@ for key in records:
     else:
         print('select on', key, ':', record.columns)
 db.close()
-db.open()
+db.open('~/ECS165')
 
 for key in records:
     updated_columns = [None, None, None, None, None]
@@ -59,7 +59,7 @@ for key in records:
             print('update on', original, 'and', updated_columns, ':', record.columns) 
         updated_columns[i] = None
 db.close()
-db.open()
+db.open('~/ECS165')
 
 keys = sorted(list(records.keys()))
 for c in range(0, grades_table.num_columns):
