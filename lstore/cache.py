@@ -22,7 +22,7 @@ class Cache:
                 evict_key = None
                 # Looks for oldest unpinned page range
                 for key in iter(self.cache):
-                        if self.cache[key].pinned == False:
+                        if self.cache[key].pinned is False and self.cache[key].merging is False:
                                 evict_key = key
                                 break
 
@@ -38,13 +38,14 @@ class Cache:
         def evict_tail_pages(self, key):
                 page_range = self.cache[key]
                 for i in range(NUM_TAILS_BEFORE_MERGE):
-                        for j in range(all_columns):
+                        for j in range(page_range.all_columns):
                                 filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
-                                        file_offset = os.path.getsize() // (PAGE_SIZE + 8)
+                                        file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
 
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
+                
                 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for column in page_range.tail_pages:
@@ -90,7 +91,7 @@ class Cache:
                                 filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
                                 file_offset = i
                                 if os.path.exists(filename):
-                                        file_offset = file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
+                                        file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
 
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
 

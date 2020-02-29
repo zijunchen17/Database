@@ -36,14 +36,13 @@ class Table:
     def __init__(self, bufferpool, name, num_columns, key_column):
         self.bufferpool = bufferpool
         self.name = name
-        self.key_index = key_index
-        self.key_column = key_index + 4
+        self.key_column = key_column
+        self.key_column = self.key_column + 4
         self.num_columns = num_columns
-        self.file_directory = file_directory
         self.bit_shift = int(math.log(PAGE_SIZE // RECORD_SIZE, 2))
         self.all_columns = num_columns + 5
         self.base_rid = 1
-        self.tail_rid = 2**64 - 1
+        self.tail_rid = 2**64 - 2
         
         self.page_directory = {}
         self.key_directory = {}
@@ -92,6 +91,12 @@ class Table:
         tail_page = page_range.get_tail_page(tail_page_index)
         tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
+        # Start merge process if first NUM_TAILS_BEFORE_MERGE tail pages are full
+        # and update
+        if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
+            page_range.merging = True
+            print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
+            self.__merge(page_range)
     
 
         tail_page[INDIRECTION_COLUMN].write(0)
@@ -195,6 +200,8 @@ class Table:
 
 
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
+                #print('key:', key , 'base_schema:', base_schema)
+                print('hello')
                 tail_page_index = page_range.get_tail_page_index(tail_rid)
                 tail_page = page_range.get_tail_page(tail_page_index)
                 tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
@@ -217,6 +224,7 @@ class Table:
             for column in filtered_columns:
                 cur_columns.append(int(column))
 
+            page_range.pinned = False
             return [Record(key, base_rid, cur_columns)]
         else:
             print('Key {} does not exist!'.format(key))
@@ -272,7 +280,7 @@ class Table:
 
             if key in self.key_directory:
                 select_index = 0
-                record_list = self.select(key, select_index, query_columns)
+                record_list = self.select(key, query_columns)
                 record = record_list[0]
                 value = record.columns[0]
                 column_value.append(value)
@@ -289,30 +297,22 @@ class Table:
                         'file_directory': self.file_directory}
         return table_schema
 
-    def __merge(self, range_index):
-        """
-
-        """
-        if self.page_ranges[range_index].check_merge:
-            tail_len = len(self.page_ranges[range_index].tail_pages[0][:-1])
-            if tail_len >= MERGE_SIZE and tail_len % MERGE_SIZE == 0:
-                ########
-                # trig merge
-                ########
-                tails_to_merge = [each_page[-1 - MERGE_SIZE:-1] for each_page in
-                                  self.page_ranges[range_index].tail_pages[-1 - self.num_columns:-1]]
-                tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
-                base_copy = copy.deepcopy(self.page_ranges[range_index].base_pages)
-                base_copy = self.merge_in_process(base_copy, tails_to_merge)
-                ########
-                # change merge trigger back
-                ########
-                self.page_ranges[range_index].check_merge = False
-            else:
-                self.page_ranges[range_index].check_merge = False
-            pass
-        else:
-            pass
+    def __merge(self, page_range):
+    
+        tails_to_merge = [column[:3] for column in page_range.tail_pages]
+        tails_to_merge = tails_to_merge[SCHEMA_ENCODING_COLUMN + 1 : self.all_columns]
+        
+        '''
+        tails_to_merge = [each_page[-1 - NUM_TAILS_BEFORE_MERGE:-1] for each_page in
+                            self.page_ranges[range_index].tail_pages[-1 - self.num_columns:-1]]
+        tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
+        '''
+        base_copy = copy.deepcopy(page_range.base_pages)
+        base_copy = self.merge_in_process(base_copy, tails_to_merge)
+        page_range.base_pages = base_copy
+        page_range.print_page_range()
+        self.bufferpool.evict_tail_pages(str(page_range.table_name) + '/page_range' + str(page_range.page_range_index))
+        page_range.merging = False
 
     @staticmethod
     def _get_location_record(baserid_list, base_rid):
@@ -336,7 +336,8 @@ class Table:
         get the latest record in all tail pages for one column which schema_encode is 1
         """
         updated_retrieved = SPECIAL_NULL_VALUE
-        for i in range(MERGE_SIZE):
+        for i in range(NUM_TAILS_BEFORE_MERGE):
+            print(i)
             baserid_list = baserid_in_all_tails[i]
             record_location = self._get_location_record(baserid_list, base_rid)
             if len(record_location) != 0:
@@ -356,7 +357,7 @@ class Table:
 
     @staticmethod
     def get_basepage_index(rid):
-        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE - 1) % BASE_PAGES_PER_RANGE
+        return (rid - 1) // (PAGE_SIZE // RECORD_SIZE)
 
     @staticmethod
     def get_base_row(rid):
@@ -398,7 +399,7 @@ class Table:
             for i, col in enumerate(latest_update):
                 if col != SPECIAL_NULL_VALUE:
                     base_copy[i + 4][base_page_index].write(col, base_row)
-            base_copy[SCHEMA_ENCODING_COLUMN][base_page_index] = int('0' * self.num_columns)
+            base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].write(int('0' * self.num_columns, 2), base_row)
             return base_copy
 
 

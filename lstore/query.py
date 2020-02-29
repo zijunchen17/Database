@@ -36,9 +36,9 @@ class Query:
     # colum: boolean object with values for the specified columns and None for the rest
     """
 
-    def select(self, select_index, key, query_columns):
+    def select(self, key, query_columns):
 
-        return self.table.select(key, select_index, query_columns)
+        return self.table.select(key, query_columns)
 
     """
     # Update a record with specified key and columns
