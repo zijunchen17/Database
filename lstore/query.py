@@ -41,21 +41,23 @@ class Query:
         """
         # index_columns = query_columns
         # index_columns.insert(key_column,-1)
-        print("here")
-        print(self.index.has_index(key_column))
+        # print("here")
+        # print(self.index.has_index(key_column))
         if not self.index.has_index(key_column):
-            print(f'No index for column {key_column}. Creating it now.')
+            # print(f'No index for column {key_column}. Creating it now.')
             self.index.create_index(key_column)
 
         matching_rids = self.index.locate(key_column,key)
-        print('matching', matching_rids)
+        # print('matching', matching_rids)
+        output = []
         for rid in matching_rids:
             # self.table.quick_select(rid, query_columns)
-            print("rid match", rid)
-            self.table.select(rid, query_columns, True)
+            # print("rid match", rid)
+            output.extend(self.table.select(rid, query_columns, True))
             
         # TODO: At least partially select() Other todo in quick_select()
-        return self.table.select(key, key_column, query_columns)
+        # return self.table.select(key, key_column, query_columns)
+        return output
 
     
 
