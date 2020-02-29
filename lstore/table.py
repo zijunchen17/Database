@@ -47,6 +47,8 @@ class Table:
         self.page_directory = {}
         self.key_directory = {}
 
+        self.flag = False
+
         pass
 
     def insert(self, schema_encoding, timestamp, *columns):
@@ -97,7 +99,23 @@ class Table:
             page_range.merging = True
             print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
             self.__merge(page_range)
-    
+            self.flag = True
+
+
+        base_rid = self.key_directory[key]
+        page_range_index = get_page_range_index(base_rid)
+        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
+        
+        base_page_index = page_range.get_base_page_index(base_rid)
+        base_page = page_range.get_base_page(base_page_index)
+        base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
+        
+        tail_rid = self.tail_rid
+        tail_page_index = page_range.get_tail_page_index(tail_rid)
+        tail_page = page_range.get_tail_page(tail_page_index)
+        tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
+
+
 
         tail_page[INDIRECTION_COLUMN].write(0)
         tail_page[RID_COLUMN].write(tail_rid)
@@ -140,13 +158,25 @@ class Table:
         # Update base_page's schema
         tail_schema = int(tail_schema,2)
         new_base_schema = base_page_schema|tail_schema
-        base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)\
+        base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
         
         # Add tail page to page directory
         self.page_directory[tail_rid] = tail_page
 
         self.tail_rid -= 1
         page_range.pinned = False
+
+        # if key == 92110659:
+
+        #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
+        #     print('*' * 100)
+        #     base_rid = self.key_directory[key]
+        #     page_range_index = get_page_range_index(base_rid)
+        #     page_range = self.bufferpool.get_page_range(self, page_range_index)
+        #     base_page = page_range.get_base_page(base_page_index)
+        #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
+            # for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
+
         
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
@@ -171,10 +201,12 @@ class Table:
                 base_column[i] = tail_column[i]
         return base_column
 
-
+# for i in range(10): print(base_page[i].read(base_physical_page_offset))
+# for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
     ## select the record having the latest values
     def select(self, key, query_columns):
-        
+        # if self.flag:
+        #     import pdb; pdb.set_trace()
         if key in self.key_directory:
             base_rid = self.key_directory[key]
             page_range_index = get_page_range_index(base_rid)
@@ -186,6 +218,8 @@ class Table:
             base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+            # if self.flag:
+            #     import pdb; pdb.set_trace()
             base_schema = format(base_schema, "b")
             base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
             
@@ -201,7 +235,7 @@ class Table:
 
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 #print('key:', key , 'base_schema:', base_schema)
-                print('hello')
+                # print('hello')
                 tail_page_index = page_range.get_tail_page_index(tail_rid)
                 tail_page = page_range.get_tail_page(tail_page_index)
                 tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
@@ -388,7 +422,7 @@ class Table:
             latest_update = []
             for i in range(self.num_columns):
                 if base_vector[i]:
-                    ltst_rcd_pe_col = self._latest_per_rid_per_col(base_rid, tails_to_merge_ext[i - 1],
+                    ltst_rcd_pe_col = self._latest_per_rid_per_col(base_rid, tails_to_merge_ext[i],
                                                                    baserid_list_list)
                     latest_update.append(ltst_rcd_pe_col)
                 else:
@@ -400,7 +434,8 @@ class Table:
                 if col != SPECIAL_NULL_VALUE:
                     base_copy[i + 4][base_page_index].write(col, base_row)
             base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].write(int('0' * self.num_columns, 2), base_row)
-            return base_copy
+            base_copy[INDIRECTION_COLUMN][base_page_index].write(0, base_row)
+        return base_copy
 
 
     #### close/open table without bufferpool
