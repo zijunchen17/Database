@@ -29,16 +29,16 @@ for key in keys:
     pass
 
 
-# for key in keys:
-#     record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
-#     print(record)
-#     error = False
-#     for i, column in enumerate(record.columns):
-#         if column != records[key][i]:
-#             error = True
-#     if error:
-#         print('select error on', key, ':', record, ', correct:', records[key])
-# print("Select finished")
+for key in keys:
+    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    print(record)
+    error = False
+    for i, column in enumerate(record.columns):
+        if column != records[key][i]:
+            error = True
+    if error:
+        print('select error on', key, ':', record, ', correct:', records[key])
+print("Select finished")
 
 # deleted_keys = sample(keys, 100)
 # for key in deleted_keys:

@@ -99,7 +99,7 @@ class Table:
         # and update
         if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
             page_range.merging = True
-            print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
+            # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
             self.__merge(page_range)
             # x = threading.Thread(target=self.__merge, args=(page_range))
             # x.start()
@@ -235,8 +235,8 @@ class Table:
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             # page_range.print_page_range()
-            print("base_rid", base_rid)
-            print("fetched:",base_schema)
+            # print("base_rid", base_rid)
+            # print("fetched:",base_schema)
             # if self.flag:
             #     import pdb; pdb.set_trace()
             # print("first schema:", base_schema)
@@ -246,9 +246,9 @@ class Table:
 
             cur_columns = [None] * self.num_columns
 
-            print(query_columns)
-            print(base_schema)
-            print(len(base_schema))
+            # print(query_columns)
+            # print(base_schema)
+            # print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
@@ -369,7 +369,7 @@ class Table:
         base_copy = copy.deepcopy(page_range.base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
         page_range.base_pages = base_copy
-        page_range.print_page_range()
+        # page_range.print_page_range()
         self.bufferpool.evict_tail_pages(str(page_range.table_name) + '/page_range' + str(page_range.page_range_index))
         page_range.merging = False
 
@@ -396,7 +396,7 @@ class Table:
         """
         updated_retrieved = SPECIAL_NULL_VALUE
         for i in range(NUM_TAILS_BEFORE_MERGE):
-            print(i)
+            # print(i)
             baserid_list = baserid_in_all_tails[i]
             record_location = self._get_location_record(baserid_list, base_rid)
             if len(record_location) != 0:
