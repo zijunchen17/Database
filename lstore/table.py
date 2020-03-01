@@ -92,23 +92,6 @@ class Table:
         base_page_index = page_range.get_base_page_index(base_rid)
         base_page = page_range.get_base_page(base_page_index)
         base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
-        
-        # tail_rid = self.tail_rid
-        # tail_page_index = page_range.get_tail_page_index(tail_rid)
-        
-
-        # tail_page = page_range.get_tail_page(tail_page_index)
-        # tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
-
-        # Start merge process if first NUM_TAILS_BEFORE_MERGE tail pages are full
-        # and update
-        # if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
-        #     page_range.merging = True
-        #     # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
-        #     #self.__merge(page_range)
-        #     x = threading.Thread(target=self.__merge, args=(page_range,))
-        #     x.start()
-        #     self.flag = True
 
 
         base_rid = self.key_directory[key]
@@ -179,23 +162,14 @@ class Table:
             #page_range.print_page_range()
             page_range.merging = True
             # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
-            #self.__merge(page_range)
-            x = threading.Thread(target=self.__merge, args=(page_range,))
-            x.start()
+            self.__merge(page_range)
+            # x = threading.Thread(target=self.__merge, args=(page_range,))
+            # x.start()
             self.flag = True
 
         page_range.pinned = False
 
-        # if key == 92110659:
-        #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
-        #     print('*' * 100)
-        #     base_rid = self.key_directory[key]
-        #     page_range_index = get_page_range_index(base_rid)
-        #     page_range = self.bufferpool.get_page_range(self, page_range_index)
-        #     base_page = page_range.get_base_page(base_page_index)
-        #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
-        #     for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
-
+  
         
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
