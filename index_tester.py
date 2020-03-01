@@ -25,10 +25,8 @@ print("Insert finished")
 
 _records = [records[key] for key in keys]
 for c in range(grades_table.num_columns):
-    print("column:",c)
     _keys = list(set([record[c] for record in _records]))
     index = {v: [record for record in _records if record[c] == v] for v in _keys}
-    print("Number of keys:", len(_keys))
     for key in _keys:
         results = [r.columns for r in query.select(key, c, [1, 1, 1, 1, 1])]
         error = False
@@ -41,7 +39,7 @@ for c in range(grades_table.num_columns):
                     break
         if error:
             print('select error on', key, ', column', c, ':', results, ', correct:', index[key])
-            break
+            # break
 print("Select finished")
 
 exit()
