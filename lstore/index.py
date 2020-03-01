@@ -54,6 +54,15 @@ class Index:
         else:
             print(f"Index already created for column {column_number}")
 
+    def delete_record_from_index(self, key):
+        key_record = self.table.select(key,[1]*self.table.num_columns)
+        rid = self.table.key_directory(key)
+        for col, val_to_remove in enumerate(key_record):
+            try:
+                self.indices[col].get(val_to_remove).remove(rid)   
+            except ValueError:
+                print(f"Error: rid {rid} wasn't indexed under {val_to_remove}")
+
     def drop_index(self, column_number):
         ''' Drop index of specific column '''
         self.indicies[column_number] = None
