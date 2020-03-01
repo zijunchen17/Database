@@ -8,27 +8,36 @@ db.open('~/ECS165')
 # Student Id and 4 grades
 grades_table = db.create_table('Grades', 5, 0)
 query = Query(grades_table)
-# print(grades_table.name)
 
 records = {}
 seed(3562901)
-for i in range(0, 10):
+for i in range(0, 1000):
     key = 92106429 + i
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
 keys = sorted(list(records.keys()))
 print("Insert finished")
 
-for key in keys:
-    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
-    error = False
-    for i, column in enumerate(record.columns):
-        if column != records[key][i]:
+table.index.create_index(1)
+table.index.create_index(2)
+table.index.create_index(3)
+table.index.create_index(4)
+
+for c in range(self.num_columns):
+    _keys = list(set(record[c] for record in records))
+    index = {v: [record for record in records if record[c] == v] for v in _keys}
+    for key in _keys:
+        results = query.select(key, c, [1, 1, 1, 1, 1])
+        error = False
+        if len(results) != len(index[key]):
             error = True
-    if error:
-        print('select error on', key, ':', record, ', correct:', records[key])
-    # else:
-    #     print('select on', key, ':', record)
+        if not error:
+            for record in index[key]:
+                if record not in results:
+                    error = True
+                    break
+        if error:
+            print('select error on', key, ', column', c ':', results, ', correct:', index[key])
 print("Select finished")
 
 for _ in range(10):
@@ -61,8 +70,4 @@ for i in range(0, 100):
     # else:
     #     print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 print("Aggregate finished")
-
-# query.print()
-
 db.close()
-
