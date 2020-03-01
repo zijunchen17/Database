@@ -48,10 +48,12 @@ class Cache:
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
                 
                 
-                for i in range(NUM_TAILS_BEFORE_MERGE):
-                        for column in page_range.tail_pages:
-                                column.pop(0)
-                                column.append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
+                
+                for column in page_range.tail_pages:
+                        column = column[:NUM_TAILS_BEFORE_MERGE]
+                        column.extend( NUM_TAILS_BEFORE_MERGE * [Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)] )
+                        
+                print('evicted first 3 tails pages')
                                          
 
         def __read_disk(self, table: Table, page_range_index):

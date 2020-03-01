@@ -84,6 +84,8 @@ class Table:
         page_range.pinned = False
 
     def update(self, key, timestamp, *columns):
+        if key == 92106456:
+            print('hello')
 
         base_rid = self.key_directory[key]
         page_range_index = get_page_range_index(base_rid)
@@ -93,19 +95,31 @@ class Table:
         base_page = page_range.get_base_page(base_page_index)
         base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
         
-        tail_rid = self.tail_rid
-        tail_page_index = page_range.get_tail_page_index(tail_rid)
-        tail_page = page_range.get_tail_page(tail_page_index)
-        tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
+        # tail_rid = self.tail_rid
+        # tail_page_index = page_range.get_tail_page_index(tail_rid)
+        
+
+        # tail_page = page_range.get_tail_page(tail_page_index)
+        # tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
         # Start merge process if first NUM_TAILS_BEFORE_MERGE tail pages are full
         # and update
+<<<<<<< HEAD
         if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
             page_range.merging = True
             self.__merge(page_range)
             # x = threading.Thread(target=self.__merge, args=(page_range))
             # x.start()
             self.flag = True
+=======
+        # if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
+        #     page_range.merging = True
+        #     # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
+        #     #self.__merge(page_range)
+        #     x = threading.Thread(target=self.__merge, args=(page_range,))
+        #     x.start()
+        #     self.flag = True
+>>>>>>> fix bug in update
 
 
         base_rid = self.key_directory[key]
@@ -118,6 +132,9 @@ class Table:
         
         tail_rid = self.tail_rid
         tail_page_index = page_range.get_tail_page_index(tail_rid)
+        # if not merging fill the first NUM_TAILS_BEFORE_MERGE pages
+        if not page_range.merging:
+            tail_page_index % NUM_TAILS_BEFORE_MERGE
         tail_page = page_range.get_tail_page(tail_page_index)
         tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
@@ -167,6 +184,17 @@ class Table:
         self.page_directory[tail_rid] = tail_page
 
         self.tail_rid -= 1
+
+        if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
+            print('merge start')
+            #page_range.print_page_range()
+            page_range.merging = True
+            # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
+            #self.__merge(page_range)
+            x = threading.Thread(target=self.__merge, args=(page_range,))
+            x.start()
+            self.flag = True
+
         page_range.pinned = False
 
         # if key == 92110659:
@@ -376,7 +404,6 @@ class Table:
         # page_range.print_page_range()
         self.bufferpool.evict_tail_pages(str(page_range.table_name) + '/page_range' + str(page_range.page_range_index))
         page_range.merging = False
-
     @staticmethod
     def _get_location_record(baserid_list, base_rid):
         """
