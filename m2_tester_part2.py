@@ -1,5 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
+from lstore.page import Page
 
 from random import choice, randint, sample, seed
 
@@ -9,10 +10,10 @@ db.open('~/ECS165')
 grades_table = db.get_table('Grades')
 query = Query(grades_table)
 
-# repopulate with random data
+# # # repopulate with random data
 records = {}
 seed(3562901)
-for i in range(0, 1000):
+for i in range(0, 100):
     key = 92106429 + i
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
 keys = sorted(list(records.keys()))
@@ -23,30 +24,42 @@ for _ in range(10):
             records[key][j] = value
 keys = sorted(list(records.keys()))
 for key in keys:
-    print(records[key])
-    print(records[key])
+    # print(records[key])
+    pass
+
 
 for key in keys:
     record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    print(record)
     error = False
+    # query.print()
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
             error = True
     if error:
         print('select error on', key, ':', record, ', correct:', records[key])
+        # break
 print("Select finished")
 
-deleted_keys = sample(keys, 100)
-for key in deleted_keys:
-    query.delete(key)
-    records.pop(key, None)
+# deleted_keys = sample(keys, 100)
+# for key in deleted_keys:
+#     query.delete(key)
+#     records.pop(key, None)
 
-for i in range(0, 100):
-    r = sorted(sample(range(0, len(keys)), 2))
-    column_sum = sum(map(lambda x: records[x][0] if x in records else 0, keys[r[0]: r[1] + 1]))
-    result = query.sum(keys[r[0]], keys[r[1]], 0)
-    if column_sum != result:
-        print('sum error on [', keys[r[0]], ',', keys[r[1]], ']: ', result, ', correct: ', column_sum)
-print("Aggregate finished")
+# for i in range(0, 100):
+#     r = sorted(sample(range(0, len(keys)), 2))
+#     column_sum = sum(map(lambda x: records[x][0] if x in records else 0, keys[r[0]: r[1] + 1]))
+#     result = query.sum(keys[r[0]], keys[r[1]], 0)
+#     if column_sum != result:
+#         print('sum error on [', keys[r[0]], ',', keys[r[1]], ']: ', result, ', correct: ', column_sum)
+# print("Aggregate finished")
+
+# dd = grades_table.file_directory
+# print(grades_table.file_directory)
+# print('-------------------------------')
+# for key, value in grades_table.file_directory.items():
+# 	print(key, value)
+# query.print()
+
 
 db.close()
