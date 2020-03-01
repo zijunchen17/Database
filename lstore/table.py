@@ -102,7 +102,6 @@ class Table:
         # and update
         if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
             page_range.merging = True
-            # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
             self.__merge(page_range)
             # x = threading.Thread(target=self.__merge, args=(page_range))
             # x.start()
@@ -122,12 +121,9 @@ class Table:
         tail_page = page_range.get_tail_page(tail_page_index)
         tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
 
-
-
         tail_page[INDIRECTION_COLUMN].write(0)
         tail_page[RID_COLUMN].write(tail_rid)
         tail_page[TIMESTAMP_COLUMN].write(timestamp)
-
 
         # Create schema encoding and write to columns.
         tail_schema = ''
@@ -174,7 +170,6 @@ class Table:
         page_range.pinned = False
 
         # if key == 92110659:
-
         #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
         #     print('*' * 100)
         #     base_rid = self.key_directory[key]
@@ -182,7 +177,7 @@ class Table:
         #     page_range = self.bufferpool.get_page_range(self, page_range_index)
         #     base_page = page_range.get_base_page(base_page_index)
         #     for i in range(10): print(base_page[i].read(base_physical_page_offset))
-            # for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
+        #     for i in range(10): print(tail_page[i].read(tail_physical_page_offset))
 
         
     def _get_row(self, rid):
@@ -197,7 +192,6 @@ class Table:
         page_list = page_list[SCHEMA_ENCODING_COLUMN+1:]
         page_list = [p for i,p in enumerate(page_list) if query_columns[i] == 1]
         return [page.read(row) for page in page_list]
-
 
     ## update latest values 
     def __update_column(self, base_column, tail_column):
@@ -406,7 +400,6 @@ class Table:
         """
         updated_retrieved = SPECIAL_NULL_VALUE
         for i in range(NUM_TAILS_BEFORE_MERGE):
-            # print(i)
             baserid_list = baserid_in_all_tails[i]
             record_location = self._get_location_record(baserid_list, base_rid)
             if len(record_location) != 0:

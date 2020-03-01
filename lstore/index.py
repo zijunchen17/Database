@@ -64,7 +64,6 @@ class Index:
 
     def delete_record_from_index(self, key):
         key_record = self.table.select(key,[1]*self.table.num_columns)
-        print("key record", key_record[0].columns)
         rid = self.table.key_directory[key]
         for col, val_to_remove in enumerate(key_record[0].columns):
             if self.has_index(col):
