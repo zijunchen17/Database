@@ -102,14 +102,6 @@ class Table:
 
         # Start merge process if first NUM_TAILS_BEFORE_MERGE tail pages are full
         # and update
-<<<<<<< HEAD
-        if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
-            page_range.merging = True
-            self.__merge(page_range)
-            # x = threading.Thread(target=self.__merge, args=(page_range))
-            # x.start()
-            self.flag = True
-=======
         # if tail_page_index == NUM_TAILS_BEFORE_MERGE and tail_physical_page_offset == 0:
         #     page_range.merging = True
         #     # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
@@ -117,7 +109,6 @@ class Table:
         #     x = threading.Thread(target=self.__merge, args=(page_range,))
         #     x.start()
         #     self.flag = True
->>>>>>> fix bug in update
 
 
         base_rid = self.key_directory[key]
