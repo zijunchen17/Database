@@ -10,7 +10,7 @@ class Index:
     def __init__(self, table):
         self.indices = [None] * table.num_columns
         self.table = table
-        self.create_index(table.key_column)
+        self.create_index(table.key_column-4)
 
     def locate(self, column, value):
         ''' Returns the RIDs of all records with provided value in specified column. '''
@@ -20,7 +20,7 @@ class Index:
             # print(f"Column {column} hasn't been indexed")
             return -1
         rids = self.indices[column].get(value)
-        # print(rids)
+        # print("located rids:",rids)
         return rids
 
     def locate_range(self, begin, end, column):
@@ -53,6 +53,7 @@ class Index:
 
     def create_index(self, column_number):
         ''' Create index on specific column '''
+        print(f"Creating index on column number {column_number}")
         # column_number -= 4
         # print("col:", column_number)
         if not self.has_index(column_number):
@@ -62,8 +63,9 @@ class Index:
             # print("selected column",col_selection)
             for key in self.table.key_directory:
                 # print("here", key, col_selection)
-                # print(self.table.select(key,col_selection))
-                table_select_val = self.table.select(key,col_selection)[column_number].columns[0]
+                # print(self.table.select(key,col_selection)[0].columns[0])
+                table_select_val = self.table.select(key,col_selection)[0].columns[0]
+                # table_select_val = self.table.select(key,col_selection)[column_number].columns[0]
                 # print("table_select",table_select_val)
                 self.add_to_index(column_number, table_select_val, self.table.key_directory[key])
         else:
