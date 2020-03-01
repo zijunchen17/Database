@@ -2,8 +2,6 @@ from lstore.table import Table, Record
 from lstore.index import Index
 from time import time
 
-
-
 class Query:
     """
     Creates a Query object that can perform different queries on the specified table 
@@ -50,6 +48,7 @@ class Query:
         # Update a record with specified key and columns
         """
         timestamp = int(time())
+        self.index.update_record(columns,key)
         self.table.update(key, timestamp, *columns)
 
     def sum(self, start_range, end_range, aggregate_column_index):
