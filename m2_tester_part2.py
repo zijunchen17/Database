@@ -3,7 +3,7 @@ from lstore.query import Query
 from lstore.page import Page
 
 from random import choice, randint, sample, seed
-
+print('part2')
 # Student Id and 4 grades
 db = Database()
 db.open('~/ECS165')

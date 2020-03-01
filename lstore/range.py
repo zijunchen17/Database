@@ -69,6 +69,7 @@ class Page_Range:
     def get_tail_physical_offset(self, tail_rid):
         return (2**64 - tail_rid - 2) % (PAGE_SIZE // RECORD_SIZE)
 
+    
     def get_first_tail_page_with_available_space(self):
         for page_index, page in enumerate(self.tail_pages[0]):
             if page.has_capacity():

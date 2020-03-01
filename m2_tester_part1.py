@@ -12,7 +12,7 @@ query = Query(grades_table)
 
 records = {}
 seed(3562901)
-for i in range(0, 10):
+for i in range(0, 40):
     key = 92106429 + i
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
@@ -47,12 +47,12 @@ for _ in range(10):
                     error = True
             if error:
                 print('update error on', original, 'and', updated_columns, ':', record, ', correct:', records[key])
-            # else:
-            #     print('update on', original, 'and', updated_columns, ':', record)
+            else:
+                 print('update on', original, 'and', updated_columns, ':', record)
             updated_columns[i] = None
 print("Update finished")
 
-for i in range(0, 100):
+for i in range(0, 10):
     r = sorted(sample(range(0, len(keys)), 2))
     column_sum = sum(map(lambda key: records[key][0], keys[r[0]: r[1] + 1]))
     result = query.sum(keys[r[0]], keys[r[1]], 0)
@@ -62,7 +62,7 @@ for i in range(0, 100):
     #     print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 print("Aggregate finished")
 
-# query.print()
+#query.print()
 
 db.close()
 
