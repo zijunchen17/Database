@@ -15,6 +15,7 @@ class Query:
     def delete(self, key):
         print("delete time")
         self.index.delete_record_from_index(key)
+        self.table.delete(key)
 
     def insert(self, *columns):
         """
