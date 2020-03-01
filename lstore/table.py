@@ -84,8 +84,6 @@ class Table:
         page_range.pinned = False
 
     def update(self, key, timestamp, *columns):
-        if key == 92106456:
-            print('hello')
 
         base_rid = self.key_directory[key]
         page_range_index = get_page_range_index(base_rid)
