@@ -49,6 +49,9 @@ class Table:
         self.page_directory = {}
         self.key_directory = key_directory
 
+        str_key_directory = key_directory
+        self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
+        # print("new kd:", self.key_directory)
         self.flag = False
 
         pass
@@ -216,14 +219,12 @@ class Table:
     ## select the record having the latest values
     def select(self, key, query_columns, rid_provided = False):
         #rid is passed in instead from query select using index
-
+        
         if key in self.key_directory or rid_provided:
-
             if not rid_provided:
                 base_rid = self.key_directory[key]
             else:
                 base_rid = key
-            # print(key, "instead of", self.key_directory[key])
             
             page_range_index = get_page_range_index(base_rid)
 
@@ -310,18 +311,18 @@ class Table:
     def delete(self, key):
         if key in self.key_directory:
             base_rid = self.key_directory[key]
-            base_page = self.page_directory[base_rid]
+            # base_page = self.page_directory[base_rid]
             base_physical_page_offset = (base_rid - 1) %(PAGE_SIZE // RECORD_SIZE)
             base_page[RID_COLUMN].write(0, base_physical_page_offset)
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
             del self.key_directory[key]
-            del self.page_directory[base_rid]
+            # del self.page_directory[base_rid]
 
             while next_rid:
                 tail_page = self.page_directory[next_rid]
                 tail_page[RID_COLUMN].write(0, self._get_row(next_rid))
-                del self.page_directory[next_rid]
+                # del self.page_directory[next_rid]
                 next_rid = tail_page[INDIRECTION_COLUMN].read(self._get_row(next_rid))
         else:
             print('Key {} does not exist!'.format(key))
