@@ -25,7 +25,6 @@ for _ in range(10):
 keys = sorted(list(records.keys()))
 for key in keys:
     # print(records[key])
-    # print(records[key])
     pass
 
 
@@ -33,11 +32,13 @@ for key in keys:
     record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
     print(record)
     error = False
+    # query.print()
     for i, column in enumerate(record.columns):
         if column != records[key][i]:
             error = True
     if error:
         print('select error on', key, ':', record, ', correct:', records[key])
+        # break
 print("Select finished")
 
 # deleted_keys = sample(keys, 100)
@@ -58,7 +59,7 @@ print("Select finished")
 # print('-------------------------------')
 # for key, value in grades_table.file_directory.items():
 # 	print(key, value)
-query.print()
+# query.print()
 
 
 db.close()

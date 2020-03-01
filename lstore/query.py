@@ -14,10 +14,8 @@ class Query:
         self.index = Index(self.table)
         pass
 
-
     def delete(self, key):
         self.table.delete(key)
-    
 
     def insert(self, *columns):
         """
@@ -31,35 +29,20 @@ class Query:
         #         self.index.add_to_index(col_num,val,self.table.base_rid)
         self.table.insert(self.table.key_column, schema_encoding, timestamp, *columns)
 
-    
-
     def select(self, key, key_column, query_columns):
         """
         Read a record with specified key
         param key: The key of the record to be update (column in the table)
         column: boolean object with values for the specified columns and None for the rest
         """
-        # index_columns = query_columns
-        # index_columns.insert(key_column,-1)
-        # print("here")
-        # print(self.index.has_index(key_column))
         if not self.index.has_index(key_column):
-            # print(f'No index for column {key_column}. Creating it now.')
             self.index.create_index(key_column)
 
         matching_rids = self.index.locate(key_column,key)
-        # print('matching', matching_rids)
         output = []
         for rid in matching_rids:
-            # self.table.quick_select(rid, query_columns)
-            # print("rid match", rid)
             output.extend(self.table.select(rid, query_columns, True))
-            
-        # TODO: At least partially select() Other todo in quick_select()
-        # return self.table.select(key, key_column, query_columns)
         return output
-
-    
 
     def update(self, key, *columns):
         """
@@ -68,15 +51,12 @@ class Query:
         timestamp = int(time())
         self.table.update(key, timestamp, *columns)
 
-    
-
     def sum(self, start_range, end_range, aggregate_column_index):
         """
         param start_range: int         # Start of the key range to aggregate 
         param end_range: int           # End of the key range to aggregate 
         param aggregate_columns: int   # Index of desired column to aggregate
         """
-
         return self.table.sum(start_range, end_range, aggregate_column_index)
     
     def print(self):
