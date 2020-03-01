@@ -15,6 +15,7 @@ class Query:
         pass
 
     def delete(self, key):
+        self.index.delete_record_from_index(key)
         self.table.delete(key)
 
     def insert(self, *columns):
