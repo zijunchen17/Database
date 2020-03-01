@@ -6,19 +6,14 @@ class Page_Range:
 
     def __init__(self, table_name, page_range_index, all_columns):
         self.table_name = table_name
-
         self.page_range_index = page_range_index
-
         self.all_columns = all_columns
 
         self.pinned = False
-
         self.dirty = False
-
         self.merging = False
 
         self.base_pages = [ [] for _ in range(self.all_columns)]
-
         self.tail_pages = [ [] for _ in range(self.all_columns)]
     
     # Method for printing out the contents of a page range, useful for debugging
