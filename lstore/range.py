@@ -52,7 +52,7 @@ class Page_Range:
         return [column[index] for column in self.base_pages]
     
     def get_base_page_index(self, base_rid):
-        return (base_rid - 1) // (PAGE_SIZE // RECORD_SIZE)
+        return (base_rid - 1) // (PAGE_SIZE // RECORD_SIZE) % BASE_PAGES_PER_RANGE
 
     def get_base_physical_offset(self, base_rid):
         return (base_rid - 1) % (PAGE_SIZE // RECORD_SIZE)
