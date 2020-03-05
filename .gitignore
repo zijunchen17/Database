@@ -6,3 +6,9 @@
 
 # Text files (contain test output)
 *.txt
+
+# .idea files
+.idea
+
+# ECS165a (directory in which DB files are generated)
+ECS165a
