@@ -16,24 +16,24 @@ class Cache:
         def __contains(self, key):
                 return key in self.cache
         
-        def __num_page_ranges_in_cache(self):
+        def __num_pages_in_cache(self):
                 return len(self.cache)
 
         def __evict(self):
                 evict_key = None
                 # Looks for oldest unpinned page
                 for key in iter(self.cache):
-                        if self.cache[key].pinned is False and self.cache[key].merging is False:
+                        if self.cache[key].pinned is False:
                                 evict_key = key
                                 break
 
                 # If we found an unpinned page to evict
                 if evict_key != None:
-                        evicted_page_range = self.cache[evict_key]
+                        evicted_page = self.cache[evict_key]
                         del self.cache[evict_key]
 
-                        if evicted_page_range.dirty == True:
-                                self.__write_disk(evicted_page_range)
+                        if evicted_page.dirty == True:
+                                self.__write_disk(evicted_page)
 
         # Write tail pages of page to disk, after merge
         def evict_tail_pages(self, key):
@@ -47,7 +47,7 @@ class Cache:
 
                                 write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
                 
-                
+                2
                 
                 for column in page_range.tail_pages:
                         column = column[:NUM_TAILS_BEFORE_MERGE]
@@ -56,17 +56,19 @@ class Cache:
                 print('evicted first 3 tails pages')
                                          
 
-        def __read_disk(self, table: Table, page_range_index):
-                page_range = Page_Range(table.name, page_range_index, table.all_columns)
+        def __read_disk(self, table: Table, page_range_index, page_type, page_index, column):
                 
-                for i in range(BASE_PAGES_PER_RANGE):
-                        for j in range(page_range.all_columns):
-                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
-                                if os.path.exists(filename):
-                                        file_offset = i
-                                        page_range.base_pages[j].append(read_page_from_file(filename, file_offset))
-                                else:
-                                        page_range.base_pages[j].append(Page(page_range.table_name, i, page_range.page_range_index, 'base', j, False, False, PAGE_SIZE, RECORD_SIZE))
+                page = Page(table.name, page_index, page_range_index, page_type, column, False, False, PAGE_SIZE, RECORD_SIZE)
+                filename = 'ECS165a/' + str(table.name) + '/page_range' + str(page_range_index) + '/' + page_type + '/column' + str(column)
+                if page_type == 'base'
+                        if os.path.exists(filename):
+                                file_offset = page_index
+                                page = read_page_from_file(filename, file_offset)
+                else:
+                        # Grab latest tail page off disk
+                        if os.path.exists(filename):
+                                file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8) - 1
+                                page = read_page_from_file(filename, file_offset)
 
                 for i in range(NUM_TAILS_BEFORE_MERGE):
                         for j in range(page_range.all_columns):
@@ -81,30 +83,19 @@ class Cache:
                         for j in range(page_range.all_columns):                      
                                 page_range.tail_pages[j].append( (Page(page_range.table_name, i, page_range.page_range_index, 'tail', j, False, False, PAGE_SIZE, RECORD_SIZE)) )
                 
-                return page_range
+                return page
         
-        def __write_disk(self, page_range):
-                for i in range(BASE_PAGES_PER_RANGE):
-                        for j in range(page_range.all_columns):
-                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/base/column' + str(j)
-                                write_page_to_file(page_range.base_pages[j][i], filename, i)
-                
-                for i in range(NUM_TAILS_BEFORE_MERGE):
-                        for j in range(page_range.all_columns):
-                                filename = 'ECS165a/' + page_range.table_name + '/page_range' + str(page_range.page_range_index) + '/tail/column' + str(j)
-                                file_offset = i
-                                if os.path.exists(filename):
-                                        file_offset = os.path.getsize(filename) // (PAGE_SIZE + 8)
-
-                                write_page_to_file(page_range.tail_pages[j][i], filename, file_offset)
+        def __write_disk(self, page):
+                        filename = 'ECS165a/' + page.table_name + '/page_range' + str(page.page_range_index) + '/' + page.page_type + '/column' + str(page.column_index)
+                        write_page_to_file(page, filename, page.page_index)
 
         def __insert(self, key, page_range):
                 # If cache is full, evict oldest unpinned page
-                if self.__num_page_ranges_in_cache == CACHE_SIZE:
+                if self.__num_pages_in_cache() == CACHE_SIZE:
                         self.__evict()
                 
                 # If cache is no longer full, start insertion process
-                if self.__num_page_ranges_in_cache() < CACHE_SIZE:
+                if self.__num_pages_in_cache() < CACHE_SIZE:
                         self.cache[key] = page_range
 
                 else: # All pages in cache are pinned, can't insert a new page into cache
@@ -116,22 +107,22 @@ class Cache:
                 self.__insert(key, page_range)
         
         # Pass in a table name and page index, and True if the page will be written to
-        def get_page_range(self, table: Table, page_range_index, write = False):
+        def get_physical_page(self, table: Table, page_range_index, page_type, page_index, column, write = False):
 
                 # Construct key from table name and page index
-                key = str(table.name) + '/page_range' + str(page_range_index)
+                key = (str(table.name) + '/page_range' + str(page_range_index) + '/' + page_type + '/column' + str(column), page_index)
 
                 # Check if page being accessed is already in cache
                 # Grab the page, take it out of cache and reinsert
                 # to make it the most recent item in cache 
                 if key in self.cache:
-                        page_range = self.cache[key]
+                        page = self.cache[key]
                         del self.cache[key]
-                        self.cache[key] = page_range
+                        self.cache[key] = page
                 # Grab the page from disk
                 else:
-                        page_range = self.__read_disk(table, page_range_index)
-                        self.__insert(key, page_range)
+                        page = self.__read_disk(table, page_range_index, page_type, page_index, column)
+                        self.__insert(key, page)
                 
                 # Pin page so it isn't evicted while still being accessed
                 self.cache[key].pinned = True
@@ -145,6 +136,6 @@ class Cache:
         # !!! Only close cache when no queries running !!!
         def close_cache(self):
                 while self.cache: # As long as cache isn't empty, pop and write each page to disk
-                        page_range = self.cache.popitem(False)[1] # False means pop oldest item
-                        if page_range.dirty == True:
-                                self.__write_disk(page_range)
+                        page= self.cache.popitem(False)[1] # False means pop oldest item
+                        if page.dirty == True:
+                                self.__write_disk(page)

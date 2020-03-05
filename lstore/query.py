@@ -48,7 +48,7 @@ class Query:
         # Update a record with specified key and columns
         """
         timestamp = int(time())
-        self.index.update_record(columns,key)
+        #self.index.update_record(columns,key)
         self.table.update(key, timestamp, *columns)
 
     def sum(self, start_range, end_range, aggregate_column_index):
