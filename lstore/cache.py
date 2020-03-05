@@ -21,13 +21,13 @@ class Cache:
 
         def __evict(self):
                 evict_key = None
-                # Looks for oldest unpinned page range
+                # Looks for oldest unpinned page
                 for key in iter(self.cache):
                         if self.cache[key].pinned is False and self.cache[key].merging is False:
                                 evict_key = key
                                 break
 
-                # If we found an unpinned page range to evict
+                # If we found an unpinned page to evict
                 if evict_key != None:
                         evicted_page_range = self.cache[evict_key]
                         del self.cache[evict_key]
@@ -35,7 +35,7 @@ class Cache:
                         if evicted_page_range.dirty == True:
                                 self.__write_disk(evicted_page_range)
 
-        # Write tail pages of page range to disk, after merge
+        # Write tail pages of page to disk, after merge
         def evict_tail_pages(self, key):
                 page_range = self.cache[key]
                 for i in range(NUM_TAILS_BEFORE_MERGE):
@@ -107,28 +107,28 @@ class Cache:
                 if self.__num_page_ranges_in_cache() < CACHE_SIZE:
                         self.cache[key] = page_range
 
-                else: # All page ranges in cache are pinned, can't insert a new page into cache
+                else: # All pages in cache are pinned, can't insert a new page into cache
                         print('Error inserting new page into the bufferpool/cache')
-                        print('Cache is full and all page ranges are pinned')
+                        print('Cache is full and all pages are pinned')
 
         def add_page_range(self, page_range_index, page_range):
                 key = page_range_index
                 self.__insert(key, page_range)
         
-        # Pass in a table name and page range index, and True if the page range will be written to
+        # Pass in a table name and page index, and True if the page will be written to
         def get_page_range(self, table: Table, page_range_index, write = False):
 
-                # Construct key from table name and page range index
+                # Construct key from table name and page index
                 key = str(table.name) + '/page_range' + str(page_range_index)
 
-                # Check if page range being accessed is already in cache
-                # Grab the page range, take it out of cache and reinsert
+                # Check if page being accessed is already in cache
+                # Grab the page, take it out of cache and reinsert
                 # to make it the most recent item in cache 
                 if key in self.cache:
                         page_range = self.cache[key]
                         del self.cache[key]
                         self.cache[key] = page_range
-                # Grab the page range from disk
+                # Grab the page from disk
                 else:
                         page_range = self.__read_disk(table, page_range_index)
                         self.__insert(key, page_range)
