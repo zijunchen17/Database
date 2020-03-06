@@ -263,7 +263,7 @@ class Table:
             # if self.flag:
             #     import pdb; pdb.set_trace()
             # print("first schema:", base_schema)
-            base_schema = format(base_schema, "05b")
+            base_schema = format(base_schema, f"0{self.num_columns}")
             # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
             
 
