@@ -1,5 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
+from lstore.utils import print_page_range
 from time import process_time
 from random import choice, randrange
 
@@ -18,7 +19,8 @@ for i in range(0, 10000):
 insert_time_1 = process_time()
 
 print("Inserting 10k records took:  \t\t\t", insert_time_1 - insert_time_0)
-
+print_page_range(grades_table, 0)
+print_page_range(grades_table, 1)
 
 # Measuring update Performance
 update_cols = [

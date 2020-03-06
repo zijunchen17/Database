@@ -46,7 +46,8 @@ class Table:
         self.base_rid = base_rid
         self.tail_rid = tail_rid
         
-        self.page_directory = {}
+        self.tail_page_directory = {} # tail_rid -> (page_range_index, page_index, tail_physical_offset)
+        self.tail_page_index_directory = {} # page_range_index -> latest_tail_page_index
         self.key_directory = key_directory
 
         str_key_directory = key_directory
@@ -61,27 +62,33 @@ class Table:
         rid = self.base_rid
 
         page_range_index = get_page_range_index(rid)
-        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
-        
-        base_page_index = page_range.get_base_page_index(rid)
-        base_page = page_range.get_base_page(base_page_index)
-        base_physical_page_offset = page_range.get_base_physical_offset(rid)
+        base_page_index = get_base_page_index(rid)
+        base_physical_page_offset = get_base_physical_offset(rid)
 
+        base_page = [ [] for _ in range(self.all_columns)]
 
+        base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
         base_page[INDIRECTION_COLUMN].write(0)
+        base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN, write=True)
         base_page[RID_COLUMN].write(rid)
+        base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN, write=True)
         base_page[TIMESTAMP_COLUMN].write(timestamp)
+        base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
         base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
+        base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
         base_page[BASE_TPS_COLUMN].write(0)
 
         for i, column in enumerate(columns):
+            base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4, write=True)
             base_page[i+4].write(column)
         
-        self.page_directory[rid] = base_page
+        #self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
         
         self.base_rid += 1
-        page_range.pinned = False
+
+        for column in base_page:
+            column.pinned = False
 
     def update(self, key, timestamp, *columns):
 
@@ -204,6 +211,12 @@ class Table:
     ## select the record having the latest values
     def select(self, key, query_columns, rid_provided = False):
         #rid is passed in instead from query select using index
+        for j in range(0, PAGE_SIZE // RECORD_SIZE):
+            for k in range(table.all_columns):
+                physical_page = table.bufferpool.get_physical_page(table, 0, 'base', 0, k)
+                print(physical_page.read(j),end=' ')
+                physical_page.pinned = False
+            print('\n',end='')
         
         if key in self.key_directory or rid_provided:
             if not rid_provided:
