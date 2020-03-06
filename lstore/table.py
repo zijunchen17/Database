@@ -91,31 +91,52 @@ class Table:
             column.pinned = False
 
     def update(self, key, timestamp, *columns):
+        print(key, columns)
 
         base_rid = self.key_directory[key]
-        page_range_index = get_page_range_index(base_rid)
-        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
-        
-        base_page_index = page_range.get_base_page_index(base_rid)
-        base_page = page_range.get_base_page(base_page_index)
-        base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
 
-
-        base_rid = self.key_directory[key]
         page_range_index = get_page_range_index(base_rid)
-        page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
-        
-        base_page_index = page_range.get_base_page_index(base_rid)
-        base_page = page_range.get_base_page(base_page_index)
-        base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
+        base_page_index = get_base_page_index(base_rid)
+        base_physical_page_offset = get_base_physical_offset(base_rid)
+
+        # Grab base page
+        base_page = [ [] for _ in range(self.all_columns)]
+        base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
+        base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN)
+        base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN)
+        base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
+        base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
+
+        for i, column in enumerate(columns):
+            base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
         
         tail_rid = self.tail_rid
-        tail_page_index = page_range.get_tail_page_index(tail_rid)
-        # if not merging fill the first NUM_TAILS_BEFORE_MERGE pages
-        if not page_range.merging:
-            tail_page_index % NUM_TAILS_BEFORE_MERGE
-        tail_page = page_range.get_tail_page(tail_page_index)
-        tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
+
+        # Check if the page range has any tail pages
+        if page_range_index not in self.tail_page_index_directory:
+            self.tail_page_index_directory[page_range_index] = 0
+
+        # Find the latest tail page of the page range
+        tail_page_index = self.tail_page_index_directory[page_range_index]
+        tail_page = [ [] for _ in range(self.all_columns)]
+
+        # Grab latest tail page to check if it's full
+        tail_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, RID_COLUMN)
+
+        # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
+        if not tail_page[RID_COLUMN].has_capacity():
+            self.tail_page_index_directory[page_range_index] += 1
+            tail_page_index = self.tail_page_index_directory[page_range_index]
+        # Unpin the page we used to check if the latest tail page is full
+        tail_page[RID_COLUMN].pinned = False 
+        
+        # Grab the tail page in which the new tail record will be put into
+        # (Either a brand new tail page or the existing one that isn't full)
+        for column in range(0, self.all_columns):   
+            tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column, write=True)
+
+
+        tail_physical_page_offset = tail_page[RID_COLUMN].num_records
 
         tail_page[INDIRECTION_COLUMN].write(0)
         tail_page[RID_COLUMN].write(tail_rid)
@@ -142,8 +163,8 @@ class Table:
         base_indirection_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
         base_page_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
 
-        # Point the tail record to its base record
-        tail_page[TAIL_BASE_RID_COLUMN].write(base_rid, tail_physical_page_offset)
+        # Point the tail record to its base record (write to base_rid column)
+        tail_page[self.all_columns - 1].write(base_rid, tail_physical_page_offset)
 
         # Set indirection of the new tail record to point to the most recent (last) tail record
         # If the new tail record is the first tail record, then its indirection will be set to 0
@@ -160,21 +181,25 @@ class Table:
         base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
         
         # Add tail page to page directory
-        self.page_directory[tail_rid] = tail_page
+        self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset)
 
         self.tail_rid -= 1
 
-        if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
-            print('merge start')
-            #page_range.print_page_range()
-            page_range.merging = True
-            # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
-            self.__merge(page_range)
-            # x = threading.Thread(target=self.__merge, args=(page_range,))
-            # x.start()
-            self.flag = True
 
-        page_range.pinned = False
+
+        # if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
+        #     print('merge start')
+        #     #page_range.print_page_range()
+        #     page_range.merging = True
+        #     # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
+        #     self.__merge(page_range)
+        #     # x = threading.Thread(target=self.__merge, args=(page_range,))
+        #     # x.start()
+        #     self.flag = True
+
+        for column in zip(base_page, tail_page):
+            column[0].pinned = False
+            column[1].pinned = False
 
   
         
