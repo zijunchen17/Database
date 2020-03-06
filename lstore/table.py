@@ -91,7 +91,6 @@ class Table:
             column.pinned = False
 
     def update(self, key, timestamp, *columns):
-        print(key, columns)
 
         base_rid = self.key_directory[key]
 
