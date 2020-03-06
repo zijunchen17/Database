@@ -22,6 +22,9 @@ def write_page_to_file(page, filename, file_offset = None):
         with open(filename, 'rb+') as f:
             f.seek(seek_pos)
             f.write(page.data)
+            new_file_offset = os.path.getsize(filename)//(PAGE_SIZE + RECORD_SIZE)
+            new_seek_pos = new_file_offset * (PAGE_SIZE + RECORD_SIZE)
+            f.seek(new_seek_pos)
             f.write(page.num_records.to_bytes(RECORD_SIZE,byteorder = BYTE_ORDER))
     else:
         with open(filename, 'wb') as f:
