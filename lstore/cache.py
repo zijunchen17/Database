@@ -32,7 +32,7 @@ class Cache:
                         evicted_page = self.cache[evict_key]
                         del self.cache[evict_key]
 
-                        if evicted_page.dirty == True:
+                        if evicted_page.page_dirty == True:
                                 self.__write_disk(evicted_page)
 
         # Write tail pages of page to disk, after merge
@@ -88,6 +88,7 @@ class Cache:
 
                 # Construct key from table name and page index
                 key = (str(table.name) + '/page_range' + str(page_range_index) + '/' + page_type + '/column' + str(column), page_index)
+                #print(key, key in self.cache)
 
                 # Check if page being accessed is already in cache
                 # Grab the page, take it out of cache and reinsert
@@ -106,7 +107,7 @@ class Cache:
 
                 # If write flag is set, 
                 if write:
-                        self.cache[key].dirty = True
+                        self.cache[key].page_dirty = True
 
                 return self.cache[key]
         
@@ -114,5 +115,5 @@ class Cache:
         def close_cache(self):
                 while self.cache: # As long as cache isn't empty, pop and write each page to disk
                         page= self.cache.popitem(False)[1] # False means pop oldest item
-                        if page.dirty == True:
+                        if page.page_dirty == True:
                                 self.__write_disk(page)

@@ -1,5 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
+from lstore.utils import print_page_range
 # from lstore.config import init
 
 from random import choice, randint, sample, seed
@@ -23,6 +24,7 @@ for i in range(0, 1000):
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
     print('inserted', records[key])
+print_page_range(grades_table, 0)
 # db.close()
 # db.open('~/ECS165')
 

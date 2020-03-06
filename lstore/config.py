@@ -1,6 +1,6 @@
 # Global Setting for the Database
 # PageSize, StartRID, etc..
-CACHE_SIZE = 2
+CACHE_SIZE = 10
 RECORD_SIZE = 8
 PAGE_SIZE = 4096
 BASE_PAGES_PER_RANGE = 16
