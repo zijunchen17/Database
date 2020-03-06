@@ -35,7 +35,7 @@ def print_page_range(table, page_range_index):
     # print('tail page type', self.tail_pages[0][-1].page_type)
     # print("num of tail pages:", len(self.tail_pages[0]))
     # print("page_range_index:", self.tail_pages[0][-1].page_range_index)
-    print(f'=============page range{page_range_index} break====================')
+    
     for i in range(0, BASE_PAGES_PER_RANGE):
         for j in range(0, PAGE_SIZE // RECORD_SIZE):
             for k in range(table.all_columns):
@@ -45,11 +45,12 @@ def print_page_range(table, page_range_index):
             print('\n',end='')
         print(f'=============base page{i} break====================')
 
-    # for i in range(0, table.tail_page_index_directory[page_range_index] + 1):
-    #     for j in range(0, PAGE_SIZE // RECORD_SIZE):
-    #         for k in range(table.all_columns):
-    #             physical_page = table.bufferpool.get_physical_page(table, page_range_index, 'tail', i, k)
-    #             print(physical_page.read(j),end=' ')
-    #             physical_page.pinned = False
-    #         print('\n',end='')
-    #     print(f'=============tail page{i} break====================')
+    for i in range(0, table.tail_page_index_directory[page_range_index] + 1):
+        for j in range(0, PAGE_SIZE // RECORD_SIZE):
+            for k in range(table.all_columns):
+                physical_page = table.bufferpool.get_physical_page(table, page_range_index, 'tail', i, k)
+                print(physical_page.read(j),end=' ')
+                physical_page.pinned = False
+            print('\n',end='')
+        print(f'=============tail page{i} break====================')
+    print(f'=============page range{page_range_index} break====================')
