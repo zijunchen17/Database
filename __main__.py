@@ -17,19 +17,18 @@ for i in range(0, 10000):
     query.insert(906659671 + i, 93, 0, 0, 0)
     keys.append(906659671 + i)
 insert_time_1 = process_time()
-
 print("Inserting 10k records took:  \t\t\t", insert_time_1 - insert_time_0)
+
 
 
 # Measuring update Performance
 update_cols = [
-    [randrange(0, 100), None, None, None, None],
+    [None, None, None, None, None],
     [None, randrange(0, 100), None, None, None],
     [None, None, randrange(0, 100), None, None],
     [None, None, None, randrange(0, 100), None],
     [None, None, None, None, randrange(0, 100)],
 ]
-
 # query.print()
 
 update_time_0 = process_time()
