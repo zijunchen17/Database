@@ -65,7 +65,7 @@ class Table:
         base_page_index = get_base_page_index(rid)
         base_physical_page_offset = get_base_physical_offset(rid)
 
-        base_page = [ [] for _ in range(self.all_columns)]
+        base_page = [ _ for _ in range(self.all_columns)]
 
         base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
         base_page[INDIRECTION_COLUMN].write(0)
@@ -98,16 +98,14 @@ class Table:
         base_page_index = get_base_page_index(base_rid)
         base_physical_page_offset = get_base_physical_offset(base_rid)
 
-        # Grab base page
-        base_page = [ [] for _ in range(self.all_columns)]
+        # Grab base page, no need to grab value columns
+        base_page = [ [] for _ in range(0, self.all_columns - self.num_columns)]
         base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
         base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN)
         base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN)
         base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
         base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
 
-        for i, column in enumerate(columns):
-            base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
         
         tail_rid = self.tail_rid
 
@@ -160,7 +158,7 @@ class Table:
 
         # Fetch base_indirection, base_row, base_schema, and page_list
         base_indirection_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
-        base_page_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+        base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
 
         # Point the tail record to its base record (write to base_rid column)
         tail_page[self.all_columns - 1].write(base_rid, tail_physical_page_offset)
@@ -175,8 +173,9 @@ class Table:
 
 
         # Update base_page's schema
+        base_schema = int(str(base_schema), 2)
         tail_schema = int(tail_schema,2)
-        new_base_schema = base_page_schema|tail_schema
+        new_base_schema = format(base_schema|tail_schema, "b")
         base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
         
         # Add tail page to page directory
@@ -252,12 +251,15 @@ class Table:
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
 
-            base_page = [ [] for _ in range(self.all_columns)]
+            base_page = [ _ for _ in range(self.all_columns)]
             base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN)
             base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN)
             base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN)
             base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN)
             base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1)
+
+            for i in range(0, self.num_columns):
+                base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             # page_range.print_page_range()
@@ -286,8 +288,8 @@ class Table:
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 #print('key:', key , 'base_schema:', base_schema)
                 # print('hello')
-                tail_page_index = self.tail_page_directory[tail_rid]
-                tail_physical_page_offset = self.tail_page_directory[tail_rid]
+                tail_page_index = self.tail_page_directory[tail_rid][1]
+                tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
                 tail_page = [ [] for _ in range(self.all_columns)]
                 for column in range(0, self.all_columns):
                     tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
