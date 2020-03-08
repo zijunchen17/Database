@@ -235,12 +235,12 @@ class Table:
     ## select the record having the latest values
     def select(self, key, query_columns, rid_provided = False):
         #rid is passed in instead from query select using index
-        for j in range(0, PAGE_SIZE // RECORD_SIZE):
-            for k in range(table.all_columns):
-                physical_page = table.bufferpool.get_physical_page(table, 0, 'base', 0, k)
-                print(physical_page.read(j),end=' ')
-                physical_page.pinned = False
-            print('\n',end='')
+        # for j in range(0, PAGE_SIZE // RECORD_SIZE):
+        #     for k in range(table.all_columns):
+        #         physical_page = table.bufferpool.get_physical_page(table, 0, 'base', 0, k)
+        #         print(physical_page.read(j),end=' ')
+        #         physical_page.pinned = False
+        #     print('\n',end='')
         
         if key in self.key_directory or rid_provided:
             if not rid_provided:
@@ -249,12 +249,15 @@ class Table:
                 base_rid = key
             
             page_range_index = get_page_range_index(base_rid)
+            base_page_index = get_base_page_index(base_rid)
+            base_physical_page_offset = get_base_physical_offset(base_rid)
 
-            page_range = self.bufferpool.get_page_range(self, page_range_index)
-            
-            base_page_index = page_range.get_base_page_index(base_rid)
-            base_page = page_range.get_base_page(base_page_index)
-            base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
+            base_page = [ [] for _ in range(self.all_columns)]
+            base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN)
+            base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN)
+            base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN)
+            base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN)
+            base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1)
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             # page_range.print_page_range()
@@ -266,7 +269,6 @@ class Table:
             base_schema = format(base_schema, f"0{self.num_columns}")
             # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
             
-
             cur_columns = [None] * self.num_columns
 
             # print(query_columns)
@@ -282,9 +284,11 @@ class Table:
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 #print('key:', key , 'base_schema:', base_schema)
                 # print('hello')
-                tail_page_index = page_range.get_tail_page_index(tail_rid)
-                tail_page = page_range.get_tail_page(tail_page_index)
-                tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
+                tail_page_index = self.tail_page_directory[tail_rid]
+                tail_physical_page_offset = self.tail_page_directory[tail_rid]
+                tail_page = [ [] for _ in range(self.all_columns)]
+                for column in range(0, self.all_columns):
+                    tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
 
                 tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
                 tail_schema = str(tail_schema)
@@ -297,6 +301,8 @@ class Table:
                         base_schema = base_schema[:i] + '0' + base_schema[i+1:]
                 
                 tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+                for column in tail_page:
+                    column.pinned = False
             
             filtered_columns = filter(self.__remove_none, cur_columns)
             
@@ -304,7 +310,8 @@ class Table:
             for column in filtered_columns:
                 cur_columns.append(int(column))
 
-            page_range.pinned = False
+            for column in base_page:
+                column.pinned = False
             return [Record(key, base_rid, cur_columns)]
         else:
             print('Key {} does not exist!'.format(key))
