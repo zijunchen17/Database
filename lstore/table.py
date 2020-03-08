@@ -276,7 +276,9 @@ class Table:
             # print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
+                    base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+            
             
             tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
@@ -408,7 +410,6 @@ class Table:
         base_copy = copy.deepcopy(page_range.base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
         page_range.base_pages = base_copy
-        # page_range.print_page_range()
         self.bufferpool.evict_tail_pages(str(page_range.table_name) + '/page_range' + str(page_range.page_range_index))
         page_range.merging = False
     @staticmethod
