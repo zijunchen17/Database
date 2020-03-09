@@ -39,7 +39,9 @@ class Database():
         table_schema = {'name': name,
                         'num_columns': num_columns,
                         'key_index': key_index,
-                        'key_directory': {}}
+                        'key_directory': {},
+                        'tail_page_directory': {}, 
+                        'tail_page_index_directory': {}}
         table = Table(self.bufferpool, **table_schema)
         self.tables.append(table)
         return table
