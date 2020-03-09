@@ -197,10 +197,12 @@ class Table:
         #     # x = threading.Thread(target=self.__merge, args=(page_range,))
         #     # x.start()
         #     self.flag = True
+        
+        for column in base_page:
+            column.pinned = False
+        for column in tail_page:
+            column.pinned = False
 
-        for column in zip(base_page, tail_page):
-            column[0].pinned = False
-            column[1].pinned = False
 
   
         
