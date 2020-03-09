@@ -86,9 +86,10 @@ class Table:
         self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
         
         self.base_rid += 1
-
+        
         for column in base_page:
             column.pinned = False
+
 
     def update(self, key, timestamp, *columns):
 
@@ -99,7 +100,7 @@ class Table:
         base_physical_page_offset = get_base_physical_offset(base_rid)
 
         # Grab base page, no need to grab value columns
-        base_page = [ [] for _ in range(0, self.all_columns - self.num_columns)]
+        base_page = [ _ for _ in range(0, self.all_columns - self.num_columns)]
         base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
         base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN)
         base_page[TIMESTAMP_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, TIMESTAMP_COLUMN)
@@ -115,7 +116,7 @@ class Table:
 
         # Find the latest tail page of the page range
         tail_page_index = self.tail_page_index_directory[page_range_index]
-        tail_page = [ [] for _ in range(self.all_columns)]
+        tail_page = [ _ for _ in range(self.all_columns)]
 
         # Grab latest tail page to check if it's full
         tail_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, RID_COLUMN)
@@ -129,7 +130,7 @@ class Table:
         
         # Grab the tail page in which the new tail record will be put into
         # (Either a brand new tail page or the existing one that isn't full)
-        for column in range(0, self.all_columns):   
+        for column in range(self.all_columns):   
             tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column, write=True)
 
 
@@ -287,11 +288,11 @@ class Table:
 
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 #print('key:', key , 'base_schema:', base_schema)
-                # print('hello')
+                #print('hello')
                 tail_page_index = self.tail_page_directory[tail_rid][1]
                 tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
-                tail_page = [ [] for _ in range(self.all_columns)]
-                for column in range(0, self.all_columns):
+                tail_page = [ _ for _ in range(self.all_columns)]
+                for column in range(self.all_columns):
                     tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
 
                 tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
@@ -346,26 +347,40 @@ class Table:
             
 
             base_rid = self.key_directory[key]
-            
-            page_range_index = get_page_range_index(base_rid)
-            page_range = self.bufferpool.get_page_range(self, page_range_index, write=True)
-            base_page_index = page_range.get_base_page_index(base_rid)
-            base_page = page_range.get_base_page(base_page_index)
-            base_physical_page_offset = page_range.get_base_physical_offset(base_rid)
 
+            page_range_index = get_page_range_index(base_rid)
+            base_page_index = get_base_page_index(base_rid)
+            base_physical_page_offset = get_base_physical_offset(base_rid)
+            
+            base_page = [ _ for _ in range(2)]
+
+            base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN)
+            base_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, RID_COLUMN, write=True)
             base_page[RID_COLUMN].write(0, base_physical_page_offset)
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+
+            for column in base_page:
+                column.pinned = False
 
             del self.key_directory[key]
 
             while next_rid:
                 tail_rid = next_rid
-                tail_page_index = page_range.get_tail_page_index(tail_rid)
-                tail_page = page_range.get_tail_page(tail_page_index)
-                tail_physical_page_offset = page_range.get_tail_physical_offset(tail_rid)
+                tail_page_index = self.tail_page_directory[tail_rid][1]
+                tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
+
+                tail_page = [ _ for _ in range(2)]
+                
+                tail_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, INDIRECTION_COLUMN)
+                tail_page[RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, RID_COLUMN, write=True)
 
                 tail_page[RID_COLUMN].write(0, tail_physical_page_offset)
                 next_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+
+                for column in tail_page:
+                    column.pinned = False
+
+                del self.tail_page_directory[tail_rid]
         else:
             print('Key {} does not exist!'.format(key))
 

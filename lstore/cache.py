@@ -34,6 +34,8 @@ class Cache:
 
                         if evicted_page.page_dirty == True:
                                 self.__write_disk(evicted_page)
+                else:
+                        print('Cache is deadlocked!')
 
         # Write tail pages of page to disk, after merge
         # def evict_tail_pages(self, key):
