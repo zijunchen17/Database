@@ -87,6 +87,7 @@ class Cache:
 
         # Pass in a table name and page index, and True if the page will be written to
         def get_physical_page(self, table: Table, page_range_index, page_type, page_index, column, write = False):
+                #print('num pages in cache:', self.__num_pages_in_cache())
 
                 # Construct key from table name and page index
                 key = (str(table.name) + '/page_range' + str(page_range_index) + '/' + page_type + '/column' + str(column), page_index)
