@@ -72,6 +72,9 @@ class Query:
         if r is not False:
             updated_columns = [None] * self.table.num_columns
             updated_columns[column] = r[column] + 1
+            u = self.update(key, *updated_columns)
+            return u
+        return False
     
     def print(self):
         page_range = self.table.bufferpool.get_page_range(self.table, 0)
