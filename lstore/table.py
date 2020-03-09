@@ -34,7 +34,7 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, bufferpool, name, num_columns, key_index, key_directory, base_rid = 1, tail_rid = 2**64 - 2):
+    def __init__(self, bufferpool, name, num_columns, key_index, key_directory, tail_page_directory, tail_page_index_directory, base_rid = 1, tail_rid = 2**64 - 2):
 
         self.bufferpool = bufferpool
         self.name = name
@@ -46,8 +46,8 @@ class Table:
         self.base_rid = base_rid
         self.tail_rid = tail_rid
         
-        self.tail_page_directory = {} # tail_rid -> (page_range_index, page_index, tail_physical_offset)
-        self.tail_page_index_directory = {} # page_range_index -> latest_tail_page_index
+        self.tail_page_directory = tail_page_directory # tail_rid -> (page_range_index, page_index, tail_physical_offset)
+        self.tail_page_index_directory = tail_page_index_directory # page_range_index -> latest_tail_page_index
         self.key_directory = key_directory
 
         str_key_directory = key_directory
@@ -410,6 +410,8 @@ class Table:
                         'num_columns': self.num_columns,
                         'key_index': self.key_index,
                         'key_directory': self.key_directory,
+                        'tail_page_directory': self.tail_page_directory,
+                        'tail_page_index_directory': self.tail_page_index_directory,
                         'base_rid': self.base_rid,
                         'tail_rid': self.tail_rid}
         return table_schema
