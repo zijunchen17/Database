@@ -47,12 +47,14 @@ class Table:
         self.tail_rid = tail_rid
         
         self.tail_page_directory = tail_page_directory # tail_rid -> (page_range_index, page_index, tail_physical_offset)
+        str_tail_page_directory = self.tail_page_directory
+        self.tail_page_directory = {int(c[0]):c[1] for c in str_tail_page_directory.items()}
+
         self.tail_page_index_directory = tail_page_index_directory # page_range_index -> latest_tail_page_index
         self.key_directory = key_directory
 
         str_key_directory = key_directory
         self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
-        # print("new kd:", self.key_directory)
         self.flag = False
 
         pass
