@@ -46,9 +46,7 @@ class Query:
         for rid in matching_rids:
             output.extend(self.table.select(rid, query_columns, True))
         for rid in matching_rids:
-            print("help")
             self.table.lock_manager[rid].release_read()
-            print("halp")
         return output
 
     def update(self, key, *columns):

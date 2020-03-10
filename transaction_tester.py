@@ -14,15 +14,16 @@ keys = []
 records = {}
 num_threads = 8
 seed(8739878934)
-
+q = Query(grades_table)
 # Generate random records
+
 for i in range(0, 10000):
     key = 92106429 + i
     keys.append(key)
     records[key] = [key, 0, 0, 0, 0]
-    q = Query(grades_table)
+    # q = Query(grades_table) # Moved above for loop
     q.insert(*records[key])
-
+print("hello")
 # create TransactionWorkers
 transaction_workers = []
 for i in range(num_threads):
