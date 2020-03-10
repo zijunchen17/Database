@@ -59,20 +59,6 @@ class Query:
         """
         return self.table.sum(start_range, end_range, aggregate_column_index)
     
-    """
-    increments one column of the record
-    this implementation should work if your select and update queries already work
-    :param key: the primary of key of the record to increment
-    :param column: the column to increment
-    # Returns True is increment is successful
-    # Returns False if no record matches key or if target record is locked by 2PL.
-    """
-    def increment(self, key, column):
-        r = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
-        if r is not False:
-            updated_columns = [None] * self.table.num_columns
-            updated_columns[column] = r[column] + 1
-    
     def print(self):
         page_range = self.table.bufferpool.get_page_range(self.table, 0)
         page_range.print_page_range()
