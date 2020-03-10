@@ -3,6 +3,7 @@ from lstore.range import *
 from time import time
 from lstore.config import *
 from lstore.utils import *
+from lstore.lock import readWriteLock
 import math
 import copy
 import threading
@@ -55,6 +56,7 @@ class Table:
 
         str_key_directory = key_directory
         self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
+        self.page_range_locks = {}
         self.flag = False
 
         pass
@@ -64,6 +66,16 @@ class Table:
         rid = self.base_rid
 
         page_range_index = get_page_range_index(rid)
+
+        # Acquire a lock so merge doesn't swap original and copy base pages
+        # while this query is running
+        if page_range_index not in self.page_range_locks:
+            new_lock = readWriteLock()
+            self.page_range_locks[page_range_index] = new_lock
+        
+        while not self.page_range_locks[page_range_index].acquire_write():
+            pass
+
         base_page_index = get_base_page_index(rid)
         base_physical_page_offset = get_base_physical_offset(rid)
 
@@ -91,13 +103,25 @@ class Table:
         
         for column in base_page:
             column.pinned = False
+        
+        self.page_range_locks[page_range_index].release_write()
 
 
     def update(self, key, timestamp, *columns):
 
         base_rid = self.key_directory[key]
 
-        page_range_index = get_page_range_index(base_rid)
+        page_range_index = get_page_range_index(rid)
+
+        # Acquire a lock so merge doesn't swap original and copy base pages
+        # while this query is running
+        if page_range_index not in self.page_range_locks:
+            new_lock = readWriteLock()
+            self.page_range_locks[page_range_index] = new_lock
+        
+        while not self.page_range_locks[page_range_index].acquire_write():
+            pass
+        
         base_page_index = get_base_page_index(base_rid)
         base_physical_page_offset = get_base_physical_offset(base_rid)
 
@@ -203,6 +227,8 @@ class Table:
         for column in tail_page:
             column.pinned = False
 
+        self.page_range_locks[page_range_index].release_write()
+
 
   
         
@@ -252,7 +278,17 @@ class Table:
             else:
                 base_rid = key
             
-            page_range_index = get_page_range_index(base_rid)
+            page_range_index = get_page_range_index(rid)
+
+            # Acquire a lock so merge doesn't swap original and copy base pages
+            # while this query is running
+            if page_range_index not in self.page_range_locks:
+                new_lock = readWriteLock()
+                self.page_range_locks[page_range_index] = new_lock
+            
+            while not self.page_range_locks[page_range_index].acquire_write():
+                pass
+
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
 
@@ -321,6 +357,9 @@ class Table:
 
             for column in base_page:
                 column.pinned = False
+            
+            self.page_range_locks[page_range_index].release_write()
+
             return [Record(key, base_rid, cur_columns)]
         else:
             print('Key {} does not exist!'.format(key))
@@ -352,7 +391,17 @@ class Table:
 
             base_rid = self.key_directory[key]
 
-            page_range_index = get_page_range_index(base_rid)
+            page_range_index = get_page_range_index(rid)
+
+            # Acquire a lock so merge doesn't swap original and copy base pages
+            # while this query is running
+            if page_range_index not in self.page_range_locks:
+                new_lock = readWriteLock()
+                self.page_range_locks[page_range_index] = new_lock
+            
+            while not self.page_range_locks[page_range_index].acquire_write():
+                pass
+
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
             
@@ -385,6 +434,8 @@ class Table:
                     column.pinned = False
 
                 del self.tail_page_directory[tail_rid]
+
+            self.page_range_locks[page_range_index].release_write()
         else:
             print('Key {} does not exist!'.format(key))
 
