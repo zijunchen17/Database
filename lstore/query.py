@@ -79,6 +79,7 @@ class Query:
             updated_columns = [None] * self.table.num_columns
             # updated_columns[column] = r[column] + 1 # sev change below
             updated_columns[column] = r.columns[column] + 1
+            # ^Parsoa said Mar 5 1013p that __getitem__ was overloaded
             u = self.update(key, *updated_columns)
             return u
         return False

@@ -23,24 +23,29 @@ for i in range(0, 10000):
     records[key] = [key, 0, 0, 0, 0]
     # q = Query(grades_table) # Moved above for loop
     q.insert(*records[key])
-print("hello")
 # create TransactionWorkers
 transaction_workers = []
 for i in range(num_threads):
     transaction_workers.append(TransactionWorker([]))
-
 # generates 10k random transactions
 # each transaction will increment the first column of a record 5 times
-for i in range(1000):
+
+q = Query(grades_table)
+for i in range(1000):  # Too slow. Will do 10 for now.
+# for i in range(80): #8 is 1 each
+    # print(f'=== loop {i} ===')
     k = randint(0, 2000 - 1)
     transaction = Transaction()
-    for j in range(5):
+    # print("outer loop")
+    for j in range(5): # from 5
+        # print("inner start")
         key = keys[k * 5 + j]
-        q = Query(grades_table)
+        # q = Query(grades_table) # Both moved √above for loop
         transaction.add_query(q.select, key, 0, [1, 1, 1, 1, 1])
-        q = Query(grades_table)
+        # q = Query(grades_table)
         transaction.add_query(q.increment, key, 1)
     transaction_workers[i % num_threads].add_transaction(transaction)
+print("hello3")
 
 threads = []
 for transaction_worker in transaction_workers:
