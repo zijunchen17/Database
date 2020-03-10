@@ -23,29 +23,31 @@ class Transaction:
 
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
-
         for query, args in self.queries:
-            
-
+            print(args)
             result = query(*args)
+            
+            print("query obj", query.__self__.table.base_rid)
+            
             # If the query has failed the transaction should abort
-            if result == False:
+            if result == False:  # If query couldn't acquire key
                 return self.abort()
+
             # Successfully acquired lock. Note.
             else:
                 q_str = str(query)
+                print("q_Str:", q_str)
                 q_str = q_str.split(' ')
                 q_str = q_str[2]
                 q_str = q_str.split('.')
                 q_str = q_str[-1]
-                if q_str in ["select", "increment", "update"]: # lol
+                if q_str in ["insert", "increment", "update"]: # lol
                     print("matched")
                     self.writing_queries.append(query)
         return self.commit()
 
     def abort(self):
-        #TODO: do roll-back and any other necessary operations
-        
+        #TODO: do roll-back and any other necessary operations        
         return False
 
     def commit(self):

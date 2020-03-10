@@ -67,8 +67,6 @@ class Table:
         rid = self.base_rid
         self.base_rid += 1
         
-
-
         page_range_index = get_page_range_index(rid)
         base_page_index = get_base_page_index(rid)
         base_physical_page_offset = get_base_physical_offset(rid)
