@@ -1,6 +1,6 @@
 from lstore.table import Table, Record
 from lstore.index import Index
-
+from lstore.query import Query
 class Transaction:
 
     """
@@ -23,15 +23,24 @@ class Transaction:
 
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
+
         for query, args in self.queries:
+            
+
             result = query(*args)
             # If the query has failed the transaction should abort
             if result == False:
                 return self.abort()
             # Successfully acquired lock. Note.
             else:
-                print("query arg:",query)
-                self.writing_queries.append()
+                q_str = str(query)
+                q_str = q_str.split(' ')
+                q_str = q_str[2]
+                q_str = q_str.split('.')
+                q_str = q_str[-1]
+                if q_str in ["select", "increment", "update"]: # lol
+                    print("matched")
+                    self.writing_queries.append(query)
         return self.commit()
 
     def abort(self):
