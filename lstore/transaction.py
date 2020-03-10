@@ -1,5 +1,5 @@
-from template.table import Table, Record
-from template.index import Index
+from lstore.table import Table, Record
+from lstore.index import Index
 
 class Transaction:
 
@@ -8,6 +8,7 @@ class Transaction:
     """
     def __init__(self):
         self.queries = []
+        self.writing_queries = []
         pass
 
     """
@@ -27,10 +28,15 @@ class Transaction:
             # If the query has failed the transaction should abort
             if result == False:
                 return self.abort()
+            # Successfully acquired lock. Note.
+            else:
+                print("query arg:",query)
+                self.writing_queries.append()
         return self.commit()
 
     def abort(self):
         #TODO: do roll-back and any other necessary operations
+        
         return False
 
     def commit(self):

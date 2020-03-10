@@ -36,11 +36,19 @@ class Query:
         """
         if not self.index.has_index(key_column):
             self.index.create_index(key_column)
-
+        
         matching_rids = self.index.locate(key_column,key)
+
+        for rid in matching_rids:
+            self.table.lock_manager[rid].acquire_read()
+
         output = []
         for rid in matching_rids:
             output.extend(self.table.select(rid, query_columns, True))
+        for rid in matching_rids:
+            print("help")
+            self.table.lock_manager[rid].release_read()
+            print("halp")
         return output
 
     def update(self, key, *columns):

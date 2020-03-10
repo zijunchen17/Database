@@ -3,6 +3,7 @@ from lstore.range import *
 from time import time
 from lstore.config import *
 from lstore.utils import *
+from lstore.lock import *
 import math
 import copy
 import threading
@@ -16,7 +17,6 @@ TAIL_BASE_RID_COLUMN = -1 # Only in tail pages
 
 
 class Record:
-
     def __init__(self, rid, key, columns):
         # rid: physical (#,offset)
         self.rid = rid
@@ -34,7 +34,8 @@ class Table:
     :param num_columns: int     #Number of Columns: all columns are integer
     :param key: int             #Index of table key in columns
     """
-    def __init__(self, bufferpool, name, num_columns, key_index, key_directory, tail_page_directory, tail_page_index_directory, base_rid = 1, tail_rid = 2**64 - 2):
+    def __init__(self, bufferpool, name, num_columns, key_index, key_directory, \
+                tail_page_directory, tail_page_index_directory, base_rid = 1, tail_rid = 2**64 - 2):
 
         self.bufferpool = bufferpool
         self.name = name
@@ -57,11 +58,16 @@ class Table:
         self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
         self.flag = False
 
+        self.lock_manager = {}
         pass
 
     def insert(self, key_column, schema_encoding, timestamp, *columns):
 
+        # TODO: Add locks after everything is done for multi-thread insertions
         rid = self.base_rid
+        self.base_rid += 1
+        
+
 
         page_range_index = get_page_range_index(rid)
         base_page_index = get_base_page_index(rid)
@@ -87,7 +93,7 @@ class Table:
         #self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
         
-        self.base_rid += 1
+        self.lock_manager[rid] = readWriteLock()
         
         for column in base_page:
             column.pinned = False
@@ -96,6 +102,7 @@ class Table:
     def update(self, key, timestamp, *columns):
 
         base_rid = self.key_directory[key]
+        self.lock_manager[base_rid].acquire_write()
 
         page_range_index = get_page_range_index(base_rid)
         base_page_index = get_base_page_index(base_rid)
@@ -109,8 +116,10 @@ class Table:
         base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
         base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
 
-        
+        #TODO: Acquire Lock        
         tail_rid = self.tail_rid
+        self.tail_rid -= 1
+        #TODO: Release Lock
 
         # Check if the page range has any tail pages
         if page_range_index not in self.tail_page_index_directory:
@@ -184,7 +193,7 @@ class Table:
         # Add tail page to page directory
         self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset)
 
-        self.tail_rid -= 1
+        
 
 
 
@@ -252,6 +261,7 @@ class Table:
             else:
                 base_rid = key
             
+
             page_range_index = get_page_range_index(base_rid)
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)

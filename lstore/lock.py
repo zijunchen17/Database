@@ -16,6 +16,7 @@ class readWriteLock:
 				self._read_ready.release()
 			return True
 		else:
+			# print('too late')
 			return False
 
 	## release a read lock 
