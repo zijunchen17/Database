@@ -73,6 +73,29 @@ for c in range(0, grades_table.num_columns):
         else:
             print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
 
+for key in records:
+    incremented_columns = [None, None, None, None, None]
+    original = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    original = original.columns
+    incremented_columns = original.copy()
+    
+    for i in range(1, grades_table.num_columns):
+        incremented_columns[i] += 1
+
+    for i in range(1, grades_table.num_columns):
+        query.increment(key, i)
+
+    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    error = False
+    for j, column in enumerate(record.columns):
+        if column != incremented_columns[j]:
+            error = True
+    if error:
+        print('increment error on', original, ':', record.columns, ', correct:', incremented_columns)
+    else:
+        print('increment on', original, ':', record.columns) 
+    updated_columns[i] = None
+
 
 db.close()
 
