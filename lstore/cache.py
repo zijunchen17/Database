@@ -72,14 +72,14 @@ class Cache:
                         filename = 'ECS165a/' + page.table_name + '/page_range' + str(page.page_range_index) + '/' + page.page_type + '/column' + str(page.column_index)
                         write_page_to_file(page, filename, page.page_index)
 
-        def __insert(self, key, page_range):
+        def __insert(self, key, page):
                 # If cache is full, evict oldest unpinned page
                 if self.__num_pages_in_cache() == CACHE_SIZE:
                         self.__evict()
                 
                 # If cache is no longer full, start insertion process
                 if self.__num_pages_in_cache() < CACHE_SIZE:
-                        self.cache[key] = page_range
+                        self.cache[key] = page
 
                 else: # All pages in cache are pinned, can't insert a new page into cache
                         print('Error inserting new page into the bufferpool/cache')
