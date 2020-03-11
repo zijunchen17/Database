@@ -26,7 +26,7 @@ class Query:
         # for col_num, val in enumerate(columns):
         #     if self.index.has_index(col_num):
         #         self.index.add_to_index(col_num,val,self.table.base_rid)
-        self.table.insert(self.table.key_column, schema_encoding, timestamp, *columns)
+        return self.table.insert(self.table.key_column, schema_encoding, timestamp, *columns)
 
     def select(self, key, key_column, query_columns):
         """
@@ -38,7 +38,9 @@ class Query:
             self.index.create_index(key_column)
         
         matching_rids = self.index.locate(key_column,key)
-
+        if not matching_rids:
+            print("No matching rids")
+            return False
         for rid in matching_rids:
             self.table.lock_manager[rid].acquire_read()
 
@@ -55,7 +57,7 @@ class Query:
         """
         timestamp = int(time())
         #self.index.update_record(columns,key)
-        self.table.update(key, timestamp, *columns)
+        return self.table.update(key, timestamp, *columns)
 
     def sum(self, start_range, end_range, aggregate_column_index):
         """
@@ -65,15 +67,16 @@ class Query:
         """
         return self.table.sum(start_range, end_range, aggregate_column_index)
     
-    """
-    increments one column of the record
-    this implementation should work if your select and update queries already work
-    :param key: the primary of key of the record to increment
-    :param column: the column to increment
-    # Returns True is increment is successful
-    # Returns False if no record matches key or if target record is locked by 2PL.
-    """
+    
     def increment(self, key, column):
+        """
+        increments one column of the record
+        this implementation should work if your select and update queries already work
+        :param key: the primary of key of the record to increment
+        :param column: the column to increment
+        # Returns True is increment is successful
+        # Returns False if no record matches key or if target record is locked by 2PL.
+        """
         r = self.select(key, self.table.key_index, [1] * self.table.num_columns)[0]
         if r is not False:
             updated_columns = [None] * self.table.num_columns

@@ -31,8 +31,8 @@ for i in range(num_threads):
 # each transaction will increment the first column of a record 5 times
 
 q = Query(grades_table)
-for i in range(1000):  # Too slow. Will do 10 for now.
-# for i in range(80): #8 is 1 each
+# for i in range(1000):  # Too slow. Will do next line for now.
+for i in range(200): #8 is 1 each
     # print(f'=== loop {i} ===')
     k = randint(0, 2000 - 1)
     transaction = Transaction()

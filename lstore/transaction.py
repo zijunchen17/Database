@@ -30,6 +30,7 @@ class Transaction:
 
             # If the query has failed the transaction should abort
             if result == False:  # If query couldn't acquire key
+                print("query aborted")
                 return self.abort()
             # Successfully acquired lock. Note.
             else:
@@ -42,14 +43,16 @@ class Transaction:
         return self.commit()
 
     def abort(self):
-    
+        
         for lock in self.write_query_locks:
             lock.release_write()
+            
         #TODO: do roll-back and any other necessary operations        
         return False
 
     def commit(self):
-        map(lambda obj: obj.write_query_locks, self.write_query_locks)
+        for lock in self.write_query_locks:
+            lock.release_write()
         # same as loop in abort
 
         # TODO: commit to database
