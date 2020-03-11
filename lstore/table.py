@@ -102,7 +102,7 @@ class Table:
         self.base_rid += 1
         
         for column in base_page:
-            column.pinned = False
+            column.pinned -= 1
         
         self.page_range_locks[page_range_index].release_write()
 
@@ -153,7 +153,7 @@ class Table:
             # trigger merge
             tail_page_index = self.tail_page_index_directory[page_range_index]
         # Unpin the page we used to check if the latest tail page is full
-        tail_page[RID_COLUMN].pinned = False 
+        tail_page[RID_COLUMN].pinned -= 1 
         
         # Grab the tail page in which the new tail record will be put into
         # (Either a brand new tail page or the existing one that isn't full)
@@ -224,9 +224,9 @@ class Table:
         #     self.flag = True
         
         for column in base_page:
-            column.pinned = False
+            column.pinned -= 1
         for column in tail_page:
-            column.pinned = False
+            column.pinned -= 1
 
         self.page_range_locks[page_range_index].release_write()
 
@@ -348,7 +348,7 @@ class Table:
                 
                 tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
                 for column in tail_page:
-                    column.pinned = False
+                    column.pinned -= 1
             
             filtered_columns = filter(self.__remove_none, cur_columns)
             
@@ -357,7 +357,7 @@ class Table:
                 cur_columns.append(int(column))
 
             for column in base_page:
-                column.pinned = False
+                column.pinned -= 1
             
             self.page_range_locks[page_range_index].release_write()
 
@@ -414,7 +414,7 @@ class Table:
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
             for column in base_page:
-                column.pinned = False
+                column.pinned -= 1
 
             del self.key_directory[key]
 
@@ -432,7 +432,7 @@ class Table:
                 next_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
 
                 for column in tail_page:
-                    column.pinned = False
+                    column.pinned -= 1
 
                 del self.tail_page_directory[tail_rid]
 
@@ -479,7 +479,7 @@ class Table:
                         for j in range(self.all_columns):
                             base_pages[j][i] = self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j)
 
-        tail_page = [ _ for _in range(self.all_columns)]
+        tail_page = [ _ for _ in range(self.all_columns)]
         for j in range(self.all_columns):
             tail_page[j] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j)
 

@@ -23,7 +23,7 @@ class Cache:
                 evict_key = None
                 # Looks for oldest unpinned page
                 for key in iter(self.cache):
-                        if self.cache[key].pinned is False:
+                        if self.cache[key].pinned == 0:
                                 evict_key = key
                                 break
 
@@ -59,7 +59,7 @@ class Cache:
 
         def __read_disk(self, table: Table, page_range_index, page_type, page_index, column):
                 
-                page = Page(table.name, page_index, page_range_index, page_type, column, False, False, PAGE_SIZE, RECORD_SIZE)
+                page = Page(table.name, page_index, page_range_index, page_type, column, False, 0, PAGE_SIZE, RECORD_SIZE)
                 filename = 'ECS165a/' + str(table.name) + '/page_range' + str(page_range_index) + '/' + page_type + '/column' + str(column)
 
                 if os.path.exists(filename):
@@ -106,7 +106,7 @@ class Cache:
                         self.__insert(key, page)
                 
                 # Pin page so it isn't evicted while still being accessed
-                self.cache[key].pinned = True
+                self.cache[key].pinned += 1
 
                 # If write flag is set, 
                 if write:

@@ -9,7 +9,7 @@ class Page:
                  page_type, 
                  column_index, 
                  page_dirty = False,
-                 page_pin = False,
+                 page_pin = 0,
                  page_size=PAGE_SIZE, 
                  record_size=RECORD_SIZE):
         self.table_name = table_name
