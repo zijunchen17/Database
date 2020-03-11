@@ -11,7 +11,7 @@ class TransactionWorker:
         self.transactions = transactions
         self.result = 0
         pass
-
+        
     def add_transaction(self, t):
         self.transactions.append(t)
 

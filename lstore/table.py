@@ -115,13 +115,11 @@ class Table:
             base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
             base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
 
-            #TODO: Acquire Lock
             tail_rid_lock = threading.Lock()
             tail_rid_lock.acquire()
             tail_rid = self.tail_rid
             self.tail_rid -= 1
             tail_rid_lock.release()
-            #TODO: Release Lock
 
             # Check if the page range has any tail pages
             if page_range_index not in self.tail_page_index_directory:
@@ -240,14 +238,6 @@ class Table:
                 base_column[i] = tail_column[i]
         return base_column
 
-
-    def quick_select(self, rid, query_columns):
-        # TODO: Don't need to check key directory. Should also be able to 
-        # go straight to the page needed. Other todo in query.select().
-        pass
-
-        
-
     ## select the record having the latest values
     def select(self, key, query_columns, rid_provided = False):
         #rid is passed in instead from query select using index
@@ -340,12 +330,25 @@ class Table:
             return False
             print('Key {} does not exist!'.format(key))
 
+    def get_base_schema(self, base_rid):
+        page_range_index = get_page_range_index(base_rid)
+        base_page_index = get_base_page_index(base_rid)
+        base_physical_page_offset = get_base_physical_offset(base_rid)
+
+        base_page = [ _ for _ in range(self.all_columns)]
+        base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN)
+
+        base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+        return base_schema
+
+    def rollback(self, rid, original_schema):
+        pass
+
     def __remove_none(self, x):
         if x == None:
             return False
         else:
             return True
-
 
     def _key_directory_tail(self,key):
         if key in self.key_directory:

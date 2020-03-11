@@ -49,6 +49,7 @@ class Query:
             output.extend(self.table.select(rid, query_columns, True))
         for rid in matching_rids:
             self.table.lock_manager[rid].release_read()
+
         return output
 
     def update(self, key, *columns):
@@ -66,7 +67,7 @@ class Query:
         param aggregate_columns: int   # Index of desired column to aggregate
         """
         return self.table.sum(start_range, end_range, aggregate_column_index)
-    
+
     
     def increment(self, key, column):
         """
@@ -86,7 +87,7 @@ class Query:
             u = self.update(key, *updated_columns)
             return u
         return False
-    
+
     def print(self):
         page_range = self.table.bufferpool.get_page_range(self.table, 0)
         page_range.print_page_range()

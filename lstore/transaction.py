@@ -9,6 +9,8 @@ class Transaction:
     def __init__(self):
         self.queries = []
         self.write_query_locks = []
+        self.write_rids = []
+        self.write_original_schemas = []
         self.ROLLBACK_METHODS = ["insert", "increment", "update"]
         pass
 
@@ -27,7 +29,7 @@ class Transaction:
         for query, args in self.queries:
             # print("args: ",args)
             result = query(*args)
-
+            
             # If the query has failed the transaction should abort
             if result == False:  # If query couldn't acquire key
                 print("query aborted")
@@ -39,11 +41,18 @@ class Transaction:
                 if method_name in self.ROLLBACK_METHODS: # lol
                     rid = query.__self__.table.key_directory[args[0]]
                     lock = query.__self__.table.lock_manager[rid]
+                    base_schema = query.__self__.table.get_base_schema(rid)
+                    self.write_rids.append(rid)
                     self.write_query_locks.append(lock)
+                    self.write_original_schemas.append(base_schema)
+
         return self.commit()
 
     def abort(self):
+
         
+
+
         for lock in self.write_query_locks:
             lock.release_write()
             
