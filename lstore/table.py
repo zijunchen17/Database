@@ -192,6 +192,7 @@ class Table:
             
             # Add tail page to page directory
             self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset)
+            # print(self.tail_page_directory[tail_rid])
             # print(self.tail_page_directory)
             
 
@@ -216,6 +217,103 @@ class Table:
         else:
             return False
         
+    def rollback(self, base_rid, original_schema, method):
+        if method is 'insert':
+            #TODO: Implement by removing from dictionary, zeroing appropriately.
+            pass
+
+        page_range_index = get_page_range_index(base_rid)
+        base_page_index = get_base_page_index(base_rid)
+        base_physical_page_offset = get_base_physical_offset(base_rid)
+
+        base_page = [ _ for _ in range(self.all_columns)]
+        base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
+        base_page[SCHEMA_ENCODING_COLUMN].write(old_base_schema, base_physical_page_offset)
+        base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
+
+
+        # for i in range(0, self.num_columns):
+        #     base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
+
+        # base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+        # page_range.print_page_range()
+        # print("base_rid", base_rid)
+        # print("fetched:",base_schema)
+        # if self.flag:
+        #     import pdb; pdb.set_trace()
+        # print("first schema:", base_schema)
+        # base_schema = format(base_schema, f"0{self.num_columns}")
+        # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
+        
+        # cur_columns = [None] * self.num_columns
+
+        # print(query_columns)
+        # print(base_schema)
+        # print(len(base_schema))
+        # for i, col in enumerate(base_schema):
+        #     if col == '0' and query_columns[i] == 1:
+        #         base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
+        #         cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+        
+        # print("begin search through rids")
+        # prev_rid = base_rid
+        rid_to_remove = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+        
+        # get the tail page index, tail_physical_page_offset
+        tail_page_index = self.tail_page_directory[rid_to_remove][1]
+        tail_physical_page_offset = self.taiL_page_directory[rid_to_remove][2]
+
+        # get the next rid to remove
+        tail_page = [ _ for _ in range(self.all_columns)]
+        tail_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, INDIRECTION_COLUMN, write = True)
+
+        # Roll back the indirection column for base_record
+        rid_moved = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+        base_page[INDIRECTION_COLUMN].write(rid_moved, base_physical_page_offset)
+
+        tail_page[INDIRECTION_COLUMN].write(0, tail_physical_page_offset)
+        tail_page[TAIL_BASE_RID_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, INDIRECTION_COLUMN, write = True)
+        tail_page[TAIL_BASE_RID_COLUMN].write(0, tail_physical_page_offset)
+        '''
+        # while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
+
+            # print(tail_rid)
+            # print('key:', key , 'base_schema:', base_schema, 'cur_cols', cur_columns)
+            # print(base_schema)
+            print("in Table.rollback()")
+            
+            tail_page_index = self.tail_page_directory[tail_rid][1]
+            tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
+            tail_page = [ _ for _ in range(self.all_columns)]
+            for column in range(self.all_columns):
+                tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
+
+            tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
+            tail_schema = str(tail_schema)
+            tail_schema = '0' * (self.num_columns - len(tail_schema)) + tail_schema
+            
+
+            for i, col in enumerate(tail_schema):
+                if base_schema[i] == tail_schema[i] == '1' and query_columns[i] == 1:
+                    cur_columns[i] = tail_page[i+4].read(tail_physical_page_offset)
+                    base_schema = base_schema[:i] + '0' + base_schema[i+1:]
+            
+            tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+            for column in tail_page:
+                column.pinned = False
+            if tail_rid == 0
+
+        filtered_columns = filter(self.__remove_none, cur_columns)
+        
+        cur_columns = []
+        for column in filtered_columns:
+            cur_columns.append(int(column))
+
+        for column in base_page:
+            column.pinned = False
+        return [Record(key, base_rid, cur_columns)]
+    '''
+
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
 
@@ -253,8 +351,8 @@ class Table:
                 base_rid = self.key_directory[key]
             else:
                 base_rid = key
-            
 
+            # print("rid provided? ", rid_provided, "base_rid:", base_rid)
             page_range_index = get_page_range_index(base_rid)
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
@@ -286,17 +384,18 @@ class Table:
             # print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
-                    base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
+                    # base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
             
             # print("begin search through rids")
             tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
-            
+
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
             # while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0 and tail_rid != 0:
                 # print(tail_rid)
                 # print('key:', key , 'base_schema:', base_schema, 'cur_cols', cur_columns)
                 # print(base_schema)
+                print("tail_rid", tail_rid, "base_schema", base_schema, "rid", base_rid)
                 tail_page_index = self.tail_page_directory[tail_rid][1]
                 tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
                 tail_page = [ _ for _ in range(self.all_columns)]
@@ -316,13 +415,12 @@ class Table:
                 tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
                 for column in tail_page:
                     column.pinned = False
-            
             filtered_columns = filter(self.__remove_none, cur_columns)
-            
+            # print("cur", cur_columns)
             cur_columns = []
             for column in filtered_columns:
                 cur_columns.append(int(column))
-
+            # print("cur_columns: ", cur_columns)
             for column in base_page:
                 column.pinned = False
             return [Record(key, base_rid, cur_columns)]
@@ -341,8 +439,7 @@ class Table:
         base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
         return base_schema
 
-    def rollback(self, rid, original_schema):
-        pass
+    
 
     def __remove_none(self, x):
         if x == None:
@@ -420,6 +517,7 @@ class Table:
                 select_index = 0
                 record_list = self.select(key, query_columns)
                 record = record_list[0]
+                print("key:", key, "record: ", record)
                 value = record.columns[0]
                 column_value.append(value)
 

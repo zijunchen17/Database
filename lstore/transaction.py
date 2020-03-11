@@ -11,6 +11,7 @@ class Transaction:
         self.write_query_locks = []
         self.write_rids = []
         self.write_original_schemas = []
+        self.write_methods = []
         self.ROLLBACK_METHODS = ["insert", "increment", "update"]
         pass
 
@@ -33,7 +34,7 @@ class Transaction:
             # If the query has failed the transaction should abort
             if result == False:  # If query couldn't acquire key
                 print("query aborted")
-                return self.abort()
+                return self.abort(query.__self__.table)
             # Successfully acquired lock. Note.
             else:
                 #TODO: Make cleaner way to do this using .__self__
@@ -45,13 +46,14 @@ class Transaction:
                     self.write_rids.append(rid)
                     self.write_query_locks.append(lock)
                     self.write_original_schemas.append(base_schema)
+                    self.write_methods.append(method_name)
 
         return self.commit()
 
-    def abort(self):
-
-        
-
+    def abort(self, table):
+        print("ABORT")
+        for base_rid, original_schema, method_name in zip(self.write_rids, self.write_original_schemas, self.write_methods):
+            table.rollback(base_rid, original_schema)
 
         for lock in self.write_query_locks:
             lock.release_write()

@@ -1,5 +1,6 @@
 from lstore.table import Table, Record
 from lstore.index import Index
+import threading
 from time import time
 
 class Query:
@@ -9,11 +10,16 @@ class Query:
 
     def __init__(self, table):
         self.table = table
+        self.index_lock = threading.Lock()
+        self.index_lock.acquire()
         self.index = Index(self.table)
+        self.index_lock.release()
         pass
 
     def delete(self, key):
+        self.index_lock.acquire()
         self.index.delete_record_from_index(key)
+        self.index_lock.release()
         self.table.delete(key)
 
     def insert(self, *columns):
@@ -22,7 +28,9 @@ class Query:
         """
         schema_encoding = int('0' * self.table.num_columns)
         timestamp = int(time())
+        self.index_lock.acquire()
         self.index.add_record_to_index(columns,self.table.base_rid)
+        self.index_lock.release()
         # for col_num, val in enumerate(columns):
         #     if self.index.has_index(col_num):
         #         self.index.add_to_index(col_num,val,self.table.base_rid)
@@ -34,12 +42,15 @@ class Query:
         param key: The key of the record to be update (column in the table)
         column: boolean object with values for the specified columns and None for the rest
         """
+        self.index_lock.acquire()
         if not self.index.has_index(key_column):
             self.index.create_index(key_column)
-        
+
         matching_rids = self.index.locate(key_column,key)
+        self.index_lock.release()
         if not matching_rids:
             print("No matching rids")
+            self.index_lock.release()
             return False
         for rid in matching_rids:
             self.table.lock_manager[rid].acquire_read()
@@ -49,7 +60,7 @@ class Query:
             output.extend(self.table.select(rid, query_columns, True))
         for rid in matching_rids:
             self.table.lock_manager[rid].release_read()
-
+         # Might need to move it up a bit.
         return output
 
     def update(self, key, *columns):
