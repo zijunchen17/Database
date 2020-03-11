@@ -477,13 +477,13 @@ class Table:
         base_pages = [ [] for _ in range(self.all_columns)]
         for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(self.all_columns):
-                            base_pages[j][i] = self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j)
+                            base_pages[j][i] = self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True)
 
-        tail_page = [ _ for _ in range(self.all_columns)]
-        for j in range(self.all_columns):
+        tail_page = [ _ for _ in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns)]
+        for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
             tail_page[j] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j)
 
-        tails_to_merge = tail_page[SCHEMA_ENCODING_COLUMN + 1 : self.all_columns]
+        tails_to_merge = tail_page
         
         base_copy = copy.deepcopy(base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
@@ -492,6 +492,14 @@ class Table:
         # replace base original with base copy
 
         self.page_range_locks[page_range_index].release_write()
+
+        # Unpin pages involved in merge
+        for i in range(BASE_PAGES_PER_RANGE):
+                        for j in range(self.all_columns):
+                            base_pages[j][i].pinned -= 1
+                            
+        for column in tail_page:
+            column.pinned -= 1
 
     @staticmethod
     def _get_location_record(baserid_list, base_rid):
