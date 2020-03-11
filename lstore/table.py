@@ -150,6 +150,7 @@ class Table:
         # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
         if not tail_page[RID_COLUMN].has_capacity():
             self.tail_page_index_directory[page_range_index] += 1
+            # trigger merge
             tail_page_index = self.tail_page_index_directory[page_range_index]
         # Unpin the page we used to check if the latest tail page is full
         tail_page[RID_COLUMN].pinned = False 
@@ -471,21 +472,27 @@ class Table:
                         'tail_rid': self.tail_rid}
         return table_schema
 
-    def __merge(self, page_range):
-    
-        tails_to_merge = [column[:3] for column in page_range.tail_pages]
-        tails_to_merge = tails_to_merge[SCHEMA_ENCODING_COLUMN + 1 : self.all_columns]
+    def __merge(self, page_range_index, tail_page_index):
+
+        base_pages = [ [] for _ in range(self.all_columns)]
+        for i in range(BASE_PAGES_PER_RANGE):
+                        for j in range(self.all_columns):
+                            base_pages[j][i] = self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j)
+
+        tail_page = [ _ for _in range(self.all_columns)]
+        for j in range(self.all_columns):
+            tail_page[j] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j)
+
+        tails_to_merge = tail_page[SCHEMA_ENCODING_COLUMN + 1 : self.all_columns]
         
-        '''
-        tails_to_merge = [each_page[-1 - NUM_TAILS_BEFORE_MERGE:-1] for each_page in
-                            self.page_ranges[range_index].tail_pages[-1 - self.num_columns:-1]]
-        tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
-        '''
-        base_copy = copy.deepcopy(page_range.base_pages)
+        base_copy = copy.deepcopy(base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
-        page_range.base_pages = base_copy
-        self.bufferpool.evict_tail_pages(str(page_range.table_name) + '/page_range' + str(page_range.page_range_index))
-        page_range.merging = False
+        while not self.page_range_locks[page_range_index].acquire_write():
+            pass
+        # replace base original with base copy
+
+        self.page_range_locks[page_range_index].release_write()
+
     @staticmethod
     def _get_location_record(baserid_list, base_rid):
         """
