@@ -23,7 +23,7 @@ class Cache:
                 evict_key = None
                 # Looks for oldest unpinned page
                 for key in iter(self.cache):
-                        if self.cache[key].pinned == 0:
+                        if self.cache[key].page_pin == 0:
                                 evict_key = key
                                 break
 
@@ -106,7 +106,7 @@ class Cache:
                         self.__insert(key, page)
                 
                 # Pin page so it isn't evicted while still being accessed
-                self.cache[key].pinned += 1
+                self.cache[key].page_pin += 1
 
                 # If write flag is set, 
                 if write:

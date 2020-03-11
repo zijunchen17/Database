@@ -102,7 +102,7 @@ class Table:
         self.base_rid += 1
         
         for column in base_page:
-            column.pinned -= 1
+            column.page_pin -= 1
         
         self.page_range_locks[page_range_index].release_write()
 
@@ -111,7 +111,7 @@ class Table:
 
         base_rid = self.key_directory[key]
 
-        page_range_index = get_page_range_index(rid)
+        page_range_index = get_page_range_index(base_rid)
 
         # Acquire a lock so merge doesn't swap original and copy base pages
         # while this query is running
@@ -149,11 +149,16 @@ class Table:
 
         # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
         if not tail_page[RID_COLUMN].has_capacity():
+            # Trigger merge
+            print('triggered merge')
+            x = threading.Thread(target=self.__merge, args=(page_range_index, self.tail_page_index_directory[page_range_index]))
+            x.start()
+            self.__merge(page_range_index, self.tail_page_index_directory[page_range_index])
             self.tail_page_index_directory[page_range_index] += 1
             # trigger merge
             tail_page_index = self.tail_page_index_directory[page_range_index]
         # Unpin the page we used to check if the latest tail page is full
-        tail_page[RID_COLUMN].pinned -= 1 
+        tail_page[RID_COLUMN].page_pin -= 1 
         
         # Grab the tail page in which the new tail record will be put into
         # (Either a brand new tail page or the existing one that isn't full)
@@ -224,9 +229,9 @@ class Table:
         #     self.flag = True
         
         for column in base_page:
-            column.pinned -= 1
+            column.page_pin -= 1
         for column in tail_page:
-            column.pinned -= 1
+            column.page_pin -= 1
 
         self.page_range_locks[page_range_index].release_write()
 
@@ -279,7 +284,7 @@ class Table:
             else:
                 base_rid = key
             
-            page_range_index = get_page_range_index(rid)
+            page_range_index = get_page_range_index(base_rid)
 
             # Acquire a lock so merge doesn't swap original and copy base pages
             # while this query is running
@@ -320,7 +325,6 @@ class Table:
             # print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
-                    base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
             
             
@@ -348,7 +352,7 @@ class Table:
                 
                 tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
                 for column in tail_page:
-                    column.pinned -= 1
+                    column.page_pin -= 1
             
             filtered_columns = filter(self.__remove_none, cur_columns)
             
@@ -357,7 +361,7 @@ class Table:
                 cur_columns.append(int(column))
 
             for column in base_page:
-                column.pinned -= 1
+                column.page_pin -= 1
             
             self.page_range_locks[page_range_index].release_write()
 
@@ -392,7 +396,7 @@ class Table:
 
             base_rid = self.key_directory[key]
 
-            page_range_index = get_page_range_index(rid)
+            page_range_index = get_page_range_index(base_rid)
 
             # Acquire a lock so merge doesn't swap original and copy base pages
             # while this query is running
@@ -414,7 +418,7 @@ class Table:
             next_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
             for column in base_page:
-                column.pinned -= 1
+                column.page_pin -= 1
 
             del self.key_directory[key]
 
@@ -432,7 +436,7 @@ class Table:
                 next_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
 
                 for column in tail_page:
-                    column.pinned -= 1
+                    column.page_pin -= 1
 
                 del self.tail_page_directory[tail_rid]
 
@@ -477,29 +481,38 @@ class Table:
         base_pages = [ [] for _ in range(self.all_columns)]
         for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(self.all_columns):
-                            base_pages[j][i] = self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True)
+                            base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
 
-        tail_page = [ _ for _ in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns)]
-        for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
-            tail_page[j] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j)
+        tail_page = [ [] for _ in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns)]
 
+        for j, column in enumerate(tail_page):
+            tail_page[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, SCHEMA_ENCODING_COLUMN + 1 + j))
+        
         tails_to_merge = tail_page
         
         base_copy = copy.deepcopy(base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
+
+        # Make sure no queries are runnign while original base pages are replaced with the merged copy
         while not self.page_range_locks[page_range_index].acquire_write():
             pass
-        # replace base original with base copy
-
-        self.page_range_locks[page_range_index].release_write()
-
-        # Unpin pages involved in merge
+        print("got merge lock")
+        # Replace contents of base page, with contents of the merged copy
         for i in range(BASE_PAGES_PER_RANGE):
                         for j in range(self.all_columns):
-                            base_pages[j][i].pinned -= 1
-                            
+                            base_pages[j][i].data = base_copy[j][i].data
+
+        self.page_range_locks[page_range_index].release_write()
+        print('merge complete')
+        # Unpin pages involved in merge
+        for i in range(BASE_PAGES_PER_RANGE):
+            for j in range(self.all_columns):
+                base_pages[j][i].page_pin -= 1
+
         for column in tail_page:
-            column.pinned -= 1
+            column[0].page_pin -= 1
+        
+        return
 
     @staticmethod
     def _get_location_record(baserid_list, base_rid):

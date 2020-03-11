@@ -1,13 +1,13 @@
 # Global Setting for the Database
 # PageSize, StartRID, etc..
-CACHE_SIZE = 120 # breaks at <120   test 110 to 250
+CACHE_SIZE = 250 # breaks at <120   test 110 to 250
 RECORD_SIZE = 8
 PAGE_SIZE = 4096
 BASE_PAGES_PER_RANGE = 16
 PAGE_RANGE_SIZE = (PAGE_SIZE // RECORD_SIZE) * BASE_PAGES_PER_RANGE
 BASE_PAGE_TYPE = 'base'
 TAIL_PAGE_TYPE = 'tail'
-NUM_TAILS_BEFORE_MERGE = 3
+NUM_TAILS_BEFORE_MERGE = 1
 
 BYTE_ORDER = 'little'
 BITE_SHIFT = 9

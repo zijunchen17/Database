@@ -17,7 +17,7 @@ records = {}
 
 seed(3562901)
 
-for i in range(0, 1000):
+for i in range(0, 200):
     key = 92106429 + randint(0, 9000)
     while key in records:
         key = 92106429 + randint(0, 9000)
@@ -75,4 +75,17 @@ for c in range(0, grades_table.num_columns):
 
 
 db.close()
+db.open('~/ECS165')
 
+print_page_range(grades_table, 0)
+
+for key in records:
+    record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
+    error = False
+    for i, column in enumerate(record.columns):
+        if column != records[key][i]:
+            error = True
+    if error:
+        print('select error on', key , ':', record.columns, ', correct:', records[key])
+    else:
+        print('select on', key, ':', record.columns)
