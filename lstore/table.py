@@ -90,7 +90,7 @@ class Table:
         base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
         base_page[SCHEMA_ENCODING_COLUMN].write(schema_encoding)
         base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
-        base_page[BASE_TPS_COLUMN].write(0)
+        base_page[BASE_TPS_COLUMN].write(SPECIAL_NULL_VALUE)
 
         for i, column in enumerate(columns):
             base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4, write=True)
@@ -307,6 +307,15 @@ class Table:
             for i in range(0, self.num_columns):
                 base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
 
+            
+            cur_columns = [None] * self.num_columns
+            
+            tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
+            tps = base_page[BASE_TPS_COLUMN].read(base_physical_page_offset)
+
+            # If tail_rid is from an update after the most recent merge (and a merge happened), traverse tails
+            # if tps > tail_rid:
+
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
             # page_range.print_page_range()
             # print("base_rid", base_rid)
@@ -316,8 +325,6 @@ class Table:
             # print("first schema:", base_schema)
             base_schema = format(base_schema, f"0{self.num_columns}")
             # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
-            
-            cur_columns = [None] * self.num_columns
 
             # print(query_columns)
             # print(base_schema)
@@ -325,11 +332,6 @@ class Table:
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
-            
-            
-            tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
-
-
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
                 #print('key:', key , 'base_schema:', base_schema)
                 #print('hello')
@@ -352,7 +354,12 @@ class Table:
                 tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
                 for column in tail_page:
                     column.page_pin -= 1
-            
+            # Get information from base record since no update happened since merge
+            # else:
+            #     for i in range(0, self.num_columns):
+            #         if query_columns[i] == 1:
+            #                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+
             filtered_columns = filter(self.__remove_none, cur_columns)
             
             cur_columns = []
@@ -550,10 +557,8 @@ class Table:
         """
         return vector like [0,1,1,0...]
         """
-        print(base_schema)
         get_bin = lambda x: format(base_schema, f"0{num_columns}")
         base_schema = get_bin(base_schema)
-        print(base_schema)
         return [int(x == '1') for i, x in enumerate(base_schema)]
 
     @staticmethod
@@ -581,8 +586,8 @@ class Table:
         baserid_all, baserid_list_list = self.baserid_in_all_tails(tails_to_merge[TAIL_BASE_RID_COLUMN])
         baserid_all.discard(0)
         for base_rid in baserid_all:
-            base_page_index = self.get_basepage_index(base_rid)
-            base_row = self.get_base_row(base_rid)
+            base_page_index = get_base_page_index(base_rid)
+            base_row = get_base_physical_offset(base_rid)
             base_schema = base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].read(base_row)
             base_vector = self.schema_vector(base_schema, self.num_columns)
             tails_to_merge_ext = tails_to_merge[-1 - self.num_columns:-1]
