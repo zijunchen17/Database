@@ -4,7 +4,7 @@ from lstore.page import Page
 from lstore.config import *
 from lstore.file_access import *
 from collections import OrderedDict
-
+import threading
 
 class Cache:
 
@@ -107,7 +107,13 @@ class Cache:
                 
                 # Pin page so it isn't evicted while still being accessed
                 self.cache[key].pinned = True
-
+                # if self.cache[key] not in self.page_latches:
+                #         self.page_latches[self.cache[key]] = threading.Lock()
+                # self.page_latches[self.cache[key]].acquire()
+                # print("s.cache[key]", self.cache[key])
+                # print("hello")
+                # if self.page_latches[self.cache[key]].locked():
+                        
                 # If write flag is set, 
                 if write:
                         self.cache[key].page_dirty = True

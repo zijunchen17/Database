@@ -32,7 +32,7 @@ for i in range(num_threads):
 
 q = Query(grades_table)
 # for i in range(1000):  # Too slow. Will do next line for now.
-for i in range(1000): #8 is 1 each
+for i in range(500): #8 is 1 each
     # print(f'=== loop {i} ===')
     k = randint(0, 2000 - 1)
     transaction = Transaction()

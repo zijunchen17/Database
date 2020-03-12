@@ -52,14 +52,14 @@ class Query:
             print("No matching rids")
             self.index_lock.release()
             return False
-        for rid in matching_rids:
-            self.table.lock_manager[rid].acquire_read()
+        # for rid in matching_rids:
+        #     self.table.lock_manager[rid].acquire_read()
 
         output = []
         for rid in matching_rids:
             output.extend(self.table.select(rid, query_columns, True))
-        for rid in matching_rids:
-            self.table.lock_manager[rid].release_read()
+        # for rid in matching_rids:
+            # self.table.lock_manager[rid].release_read()
          # Might need to move it up a bit.
         return output
 
