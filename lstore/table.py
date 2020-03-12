@@ -546,12 +546,14 @@ class Table:
         return updated_retrieved
 
     @staticmethod
-    def schema_vector(base_schema):
+    def schema_vector(base_schema, num_columns):
         """
         return vector like [0,1,1,0...]
         """
-        get_bin = lambda x: format(x, '05b')
+        print(base_schema)
+        get_bin = lambda x: format(base_schema, f"0{num_columns}")
         base_schema = get_bin(base_schema)
+        print(base_schema)
         return [int(x == '1') for i, x in enumerate(base_schema)]
 
     @staticmethod
@@ -579,7 +581,7 @@ class Table:
             base_page_index = self.get_basepage_index(base_rid)
             base_row = self.get_base_row(base_rid)
             base_schema = base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].read(base_row)
-            base_vector = self.schema_vector(base_schema)
+            base_vector = self.schema_vector(base_schema, self.num_columns)
             tails_to_merge_ext = tails_to_merge[-1 - self.num_columns:-1]
             #######
             # go merge
