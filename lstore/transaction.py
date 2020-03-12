@@ -60,9 +60,10 @@ class Transaction:
         print("ABORT")
         # print("base_rids", self.write_rids)
         # print("schemas", self.write_original_schemas)
-        # print("methods", self.write_methods)
+        print("methods", self.write_methods)
         if self.write_methods:
             for base_rid, original_schema, method_name in zip(self.write_rids, self.write_original_schemas, self.write_methods):
+                print("hi")
                 table.rollback(base_rid, original_schema, method_name)
 
         for lock in self.write_query_locks:
