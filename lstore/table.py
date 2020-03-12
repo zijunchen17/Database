@@ -573,7 +573,10 @@ class Table:
         baserid_all = set().union(*baserid_list_list)
         return baserid_all, baserid_list_list
 
-    def merge_in_process(self, base_copy, tails_to_merge):
+    def merge_in_process(self, bases_to_merge, tails_to_merge):
+        base_copy = copy.deepcopy(bases_to_merge)
+        tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
+        tps = tails_to_merge[RID_COLUMN][0].read(PAGE_SIZE // RECORD_SIZE)
         baserid_all, baserid_list_list = self.baserid_in_all_tails(tails_to_merge[TAIL_BASE_RID_COLUMN])
         baserid_all.discard(0)
         for base_rid in baserid_all:
@@ -599,8 +602,11 @@ class Table:
             for i, col in enumerate(latest_update):
                 if col != SPECIAL_NULL_VALUE:
                     base_copy[i + 4][base_page_index].write(col, base_row)
-            base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].write(int('0' * self.num_columns, 2), base_row)
-            base_copy[INDIRECTION_COLUMN][base_page_index].write(0, base_row)
+            # base_copy[SCHEMA_ENCODING_COLUMN][base_page_index].write(int('0' * self.num_columns, 2), base_row)
+            # base_copy[INDIRECTION_COLUMN][base_page_index].write(0, base_row)
+            for page in range(0,BASE_PAGES_PER_RANGE):
+                for row in range(0,PAGE_SIZE // RECORD_SIZE):
+                    base_copy[BASE_TPS_COLUMN][page].write(tps, row)
         return base_copy
 
 
