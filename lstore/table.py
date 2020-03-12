@@ -134,10 +134,6 @@ class Table:
             self.tail_rid -= 1
             tail_rid_lock.release()
 
-            # if 
-            #     self.lock_manager[self.tail_rid] = readWriteLock()
-
-
 
             # Check if the page range has any tail pages
             if page_range_index not in self.tail_page_index_directory:
@@ -250,9 +246,6 @@ class Table:
         
     def rollback(self, base_rid, original_schema, method):
         print("rollback the yacht")
-        if method is 'insert':
-            #TODO: Implement by removing from dictionary, zeroing appropriately.
-            pass
 
         page_range_index = get_page_range_index(base_rid)
         base_page_index = get_base_page_index(base_rid)
@@ -260,7 +253,7 @@ class Table:
 
         base_page = [ _ for _ in range(self.all_columns)]
         base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
-        base_page[SCHEMA_ENCODING_COLUMN].write(old_base_schema, base_physical_page_offset)
+        base_page[SCHEMA_ENCODING_COLUMN].write(original_schema, base_physical_page_offset)
         base_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, INDIRECTION_COLUMN, write=True)
 
 
@@ -293,7 +286,7 @@ class Table:
         
         # get the tail page index, tail_physical_page_offset
         tail_page_index = self.tail_page_directory[rid_to_remove][1]
-        tail_physical_page_offset = self.taiL_page_directory[rid_to_remove][2]
+        tail_physical_page_offset = self.tail_page_directory[rid_to_remove][2]
 
         # get the next rid to remove
         tail_page = [ _ for _ in range(self.all_columns)]

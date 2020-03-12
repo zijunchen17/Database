@@ -14,7 +14,8 @@ class Transaction:
         self.write_original_schemas = []
         self.write_methods = []
 
-        self.ROLLBACK_METHODS = ["insert", "increment", "update"]
+        # self.ROLLBACK_METHODS = ["insert", "increment", "update"]
+        self.ROLLBACK_METHODS = ["increment", "update"]
         self.transaction_id = 0 # TODO : Add
         pass
 
@@ -34,32 +35,35 @@ class Transaction:
             # print("args: ",args)
             method_name = query.__name__
             if method_name in self.ROLLBACK_METHODS: # lol    
-                    rid = query.__self__.table.key_directory[args[0]]
-                    lock = query.__self__.table.lock_manager[rid]
-                    base_schema = query.__self__.table.get_base_schema(rid)
-                    self.write_rids.append(rid)
-                    self.write_query_locks.append(lock)
-                    self.write_original_schemas.append(base_schema)
-                    self.write_methods.append(method_name)
+                rid = query.__self__.table.key_directory[args[0]]
+                base_schema = query.__self__.table.get_base_schema(rid)
+                lock = query.__self__.table.lock_manager[rid]
+
             result = query(*args)
-            
+
+            if method_name in self.ROLLBACK_METHODS and result != False:
+                # print("inside")
+                self.write_methods.append(method_name)
+                self.write_rids.append(rid)
+                self.write_original_schemas.append(base_schema)
+                self.write_query_locks.append(lock)
+
             # If the query has failed the transaction should abort
             if result == False:  # If query couldn't acquire key
-                print("query aborted")
+                print(f"query aborted")
                 return self.abort(query.__self__.table)
             # Successfully acquired lock. Note.
                 
-                
-
         return self.commit()
 
     def abort(self, table):
         print("ABORT")
-        print("base_rids", self.write_rids)
-        print("schemas", self.write_original_schemas)
-        print("methods", self.write_methods)
-        for base_rid, original_schema, method_name in zip(self.write_rids, self.write_original_schemas, self.write_methods):
-            table.rollback(base_rid, original_schema, method_name)
+        # print("base_rids", self.write_rids)
+        # print("schemas", self.write_original_schemas)
+        # print("methods", self.write_methods)
+        if self.write_methods:
+            for base_rid, original_schema, method_name in zip(self.write_rids, self.write_original_schemas, self.write_methods):
+                table.rollback(base_rid, original_schema, method_name)
 
         for lock in self.write_query_locks:
             lock.release_write()
