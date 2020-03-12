@@ -577,7 +577,7 @@ class Table:
     def merge_in_process(self, bases_to_merge, tails_to_merge):
         base_copy = copy.deepcopy(bases_to_merge)
         tails_to_merge = [each_page[::-1] for each_page in tails_to_merge]
-        tps = tails_to_merge[RID_COLUMN][0].read(PAGE_SIZE // RECORD_SIZE)
+        tps = tails_to_merge[RID_COLUMN][0].read(PAGE_SIZE // RECORD_SIZE - 1)
         baserid_all, baserid_list_list = self.baserid_in_all_tails(tails_to_merge[TAIL_BASE_RID_COLUMN])
         baserid_all.discard(0)
         for base_rid in baserid_all:
