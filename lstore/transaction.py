@@ -9,10 +9,13 @@ class Transaction:
     def __init__(self):
         self.queries = []
         self.write_query_locks = []
+        
         self.write_rids = []
         self.write_original_schemas = []
         self.write_methods = []
+
         self.ROLLBACK_METHODS = ["insert", "increment", "update"]
+        self.transaction_id = 0 # TODO : Add
         pass
 
     """

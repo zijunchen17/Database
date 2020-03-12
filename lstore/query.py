@@ -91,7 +91,11 @@ class Query:
         # Returns True is increment is successful
         # Returns False if no record matches key or if target record is locked by 2PL.
         """
-        r = self.select(key, self.table.key_index, [1] * self.table.num_columns)[0]
+        # r = self.select(key, self.table.key_index, [1] * self.table.num_columns)[0]
+        select_res = self.select(key, self.table.key_index, [1] * self.table.num_columns)
+        if not select_res:
+            return False
+        r = select_res[0]
         if r is not False:
             updated_columns = [None] * self.table.num_columns
             # updated_columns[column] = r[column] + 1 # sev change below

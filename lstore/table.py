@@ -390,6 +390,7 @@ class Table:
             base_physical_page_offset = get_base_physical_offset(base_rid)
 
             if not self.lock_manager[base_rid].acquire_read():
+                # print("no lock available")
                 return False            
             
             if not (page_range_index,base_page_index) in self.base_page_latches:
