@@ -482,15 +482,16 @@ class Table:
             for j in range(self.all_columns):
                 base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
 
-        tail_page = [ [] for _ in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns)]
+        tail_page = [ [] for _ in range(self.all_columns)]
 
-        for j, column in enumerate(tail_page):
-            tail_page[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, SCHEMA_ENCODING_COLUMN + 1 + j))
+        for j in range(self.all_columns):
+            tail_page[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j))
         
+        bases_to_merge = base_pages
         tails_to_merge = tail_page
         
-        base_copy = copy.deepcopy(base_pages)
-        base_copy = self.merge_in_process(base_copy, tails_to_merge)
+        
+        base_copy = self.merge_in_process(bases_to_merge, tails_to_merge)
         print('grabbing merge lock')
         # Make sure no queries are runnign while original base pages are replaced with the merged copy
         while not self.page_range_locks[page_range_index].acquire_write():
