@@ -153,7 +153,6 @@ class Table:
             print('triggered merge')
             x = threading.Thread(target=self.__merge, args=(page_range_index, self.tail_page_index_directory[page_range_index]))
             x.start()
-            self.__merge(page_range_index, self.tail_page_index_directory[page_range_index])
             self.tail_page_index_directory[page_range_index] += 1
             # trigger merge
             tail_page_index = self.tail_page_index_directory[page_range_index]
@@ -480,8 +479,8 @@ class Table:
 
         base_pages = [ [] for _ in range(self.all_columns)]
         for i in range(BASE_PAGES_PER_RANGE):
-                        for j in range(self.all_columns):
-                            base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
+            for j in range(self.all_columns):
+                base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
 
         tail_page = [ [] for _ in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns)]
 
@@ -492,7 +491,7 @@ class Table:
         
         base_copy = copy.deepcopy(base_pages)
         base_copy = self.merge_in_process(base_copy, tails_to_merge)
-
+        print('grabbing merge lock')
         # Make sure no queries are runnign while original base pages are replaced with the merged copy
         while not self.page_range_locks[page_range_index].acquire_write():
             pass
