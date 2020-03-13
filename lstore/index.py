@@ -18,7 +18,7 @@ class Index:
         ''' Returns the RIDs of all records with provided value in specified column. '''
         if not self.has_index(column):
             return -1
-        rids = self.indices[column].get(value)
+        rids = list(self.indices[column].get(value))
         return rids
 
     def locate_range(self, begin, end, column):
@@ -66,9 +66,9 @@ class Index:
     def add_to_index(self, column, value, rid):
         ''' Add existing record to column index '''
         if self.indices[column].has_key(value):
-            self.indices[column].get(value).append(rid)
+            self.indices[column].get(value).add(rid)
         else:
-            self.indices[column][value] = [rid]
+            self.indices[column][value] = {rid}
 
     def create_index(self, column_number):
         ''' Create index on specific column '''
@@ -95,4 +95,4 @@ class Index:
 
     def drop_index(self, column_number):
         ''' Drop index of specific column '''
-        self.indicies[column_number] = None
+        self.indices[column_number] = None
