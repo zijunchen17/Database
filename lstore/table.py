@@ -54,6 +54,7 @@ class Table:
         str_key_directory = key_directory
         self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
         self.flag = False
+        self.base_to_rid_and_indirection = {}
 
         self.lock_manager = {}
         for rid in range(1,self.base_rid+1):
@@ -102,11 +103,13 @@ class Table:
         if key in self.key_directory:
             base_rid = self.key_directory[key]
 
+            if not self.lock_manager[base_rid].acquire_write():
+                return False
+
             page_range_index = get_page_range_index(base_rid)
             base_page_index = get_base_page_index(base_rid)
             
-            if not self.lock_manager[base_rid].acquire_write():
-                return False
+            
 
             if not (page_range_index,base_page_index) in self.base_page_latches:
                 self.base_page_latches[(page_range_index,base_page_index)] = threading.Lock()
@@ -205,7 +208,7 @@ class Table:
             base_page[SCHEMA_ENCODING_COLUMN].write(int(new_base_schema), base_physical_page_offset)
             
             # Add tail page to page directory
-            self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset)
+            self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset,base_rid,tail_rid)
             
             # if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
             #     print('merge start')
@@ -484,6 +487,7 @@ class Table:
     def sum(self, start_range, end_range, aggregate_column_index):
         print("unique tail_rid updated:", len(self.tail_page_directory))
         print("unique tail_val updated:", len(self.tail_page_directory.values()))
+        # print("tail_page_dir:", [(c,v[-2:]) for (c,v) in self.tail_page_directory.items()])
         column_value = []
 
         query_columns = [0] * self.num_columns
