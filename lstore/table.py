@@ -15,7 +15,6 @@ SCHEMA_ENCODING_COLUMN = 3
 BASE_TPS_COLUMN = -1 # Only in base pages
 TAIL_BASE_RID_COLUMN = -1 # Only in tail pages
 
-
 class Record:
     def __init__(self, rid, key, columns):
         # rid: physical (#,offset)
@@ -26,9 +25,7 @@ class Record:
     def __str__(self):
         return str(self.columns)
 
-
 class Table:
-
     """
     :param name: string         #Table name
     :param num_columns: int     #Number of Columns: all columns are integer
@@ -63,7 +60,7 @@ class Table:
             self.lock_manager[rid] = readWriteLock()
         self.base_page_latches = {}
         self.tail_page_latches = {}
-        pass
+        self.tail_rid_lock = threading.Lock()
 
     def insert(self, key_column, schema_encoding, timestamp, *columns):
         # TODO: Add locks after everything is done for multi-thread insertions
@@ -104,7 +101,7 @@ class Table:
     def update(self, key, timestamp, *columns):
         if key in self.key_directory:
             base_rid = self.key_directory[key]
-            
+
             page_range_index = get_page_range_index(base_rid)
             base_page_index = get_base_page_index(base_rid)
             
@@ -125,11 +122,11 @@ class Table:
             base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
             base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
 
-            tail_rid_lock = threading.Lock()
-            tail_rid_lock.acquire()
+            
+            self.tail_rid_lock.acquire()
             tail_rid = self.tail_rid
             self.tail_rid -= 1
-            tail_rid_lock.release()
+            self.tail_rid_lock.release()
 
             # Check if the page range has any tail pages
             if page_range_index not in self.tail_page_index_directory:
@@ -201,7 +198,6 @@ class Table:
             # Add tail_rid to base_page's indirection
             base_page[INDIRECTION_COLUMN].write(tail_rid, base_physical_page_offset)
 
-
             # Update base_page's schema
             base_schema = int(str(base_schema), 2)
             tail_schema = int(tail_schema,2)
@@ -210,12 +206,7 @@ class Table:
             
             # Add tail page to page directory
             self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset)
-            # print(self.tail_page_directory[tail_rid])
-            # print(self.tail_page_directory)
             
-
-
-
             # if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
             #     print('merge start')
             #     #page_range.print_page_range()
@@ -243,7 +234,7 @@ class Table:
         
     def rollback(self, base_rid, original_schema, method):
         # ty yating
-        print("rollback the yacht")
+        # print("rollback the yacht")
 
         page_range_index = get_page_range_index(base_rid)
         base_page_index = get_base_page_index(base_rid)
@@ -258,11 +249,12 @@ class Table:
         
         # get the tail page index, tail_physical_page_offset
         tail_page_index = self.tail_page_directory[rid_to_remove][1]
-        tail_physical_page_offset = self.tail_page_directory[rid_to_remove][2]
+        
         if (page_range_index,tail_page_index) not in self.tail_page_latches:
             self.tail_page_latches[(page_range_index,tail_page_index)] = threading.Lock()
         self.tail_page_latches[(page_range_index,tail_page_index)].acquire()
-
+        tail_physical_page_offset = self.tail_page_directory[rid_to_remove][2]
+        del self.tail_page_directory[rid_to_remove]
         # get the next rid to remove
         tail_page = [ _ for _ in range(self.all_columns)]
         tail_page[INDIRECTION_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, INDIRECTION_COLUMN, write = True)
@@ -490,8 +482,8 @@ class Table:
             return False
 
     def sum(self, start_range, end_range, aggregate_column_index):
-        # print("unique tail_rid updated:", len(self.tail_page_directory))
-        # print("unique tail_val updated:", len(self.tail_page_directory.values()))
+        print("unique tail_rid updated:", len(self.tail_page_directory))
+        print("unique tail_val updated:", len(self.tail_page_directory.values()))
         column_value = []
 
         query_columns = [0] * self.num_columns

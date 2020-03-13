@@ -6,24 +6,31 @@ Indices are usually B-Trees, but other data structures can be used as well.
 from BTrees import IOBTree
 from lstore.utils import *
 from lstore.config import *
+from lstore.lock import *
 
 class Index:
 
     def __init__(self, table):
         self.indices = [None] * table.num_columns
         self.table = table
+        self.lock = readWriteLock()
         self.create_index(table.key_column-4)
+        
 
     def locate(self, column, value):
         ''' Returns the RIDs of all records with provided value in specified column. '''
+        self.lock.acquire_read()
         if not self.has_index(column):
             return -1
         rids = self.indices[column].get(value)
+        self.lock.release_read()
         return rids
 
     def locate_range(self, begin, end, column):
         ''' Returns the RIDs of all records with values in column "column" between "begin" and "end"'''
+        self.lock.acquire_read()
         set_of_vals = list(self.indices[column].values(min=begin,max=end))
+        self.lock.release_read()
         return set_of_vals
 
     def has_index(self, column_number):
@@ -32,12 +39,15 @@ class Index:
 
     def add_record_to_index(self, columns, rid):
         ''' Index columns as needed from new record '''
+        self.lock.acquire_write()
         for col_num, val in enumerate(columns):
             if self.has_index(col_num):
                 self.add_to_index(col_num,val,rid)
+        self.lock.release_write()
 
     def update_record(self, columns, key):
         ''' Propagates table update into index '''
+        self.lock.acquire_write()
         rid = self.table.key_directory[key]
         # print("columns:", columns, "key:", key)
         
@@ -62,17 +72,21 @@ class Index:
                 self.indices[col_number].get(table_select_val).remove(rid)
                 # print('hello')
                 self.add_to_index(col_number,value,rid)
+        self.lock.release_write()
 
     def add_to_index(self, column, value, rid):
         ''' Add existing record to column index '''
+        self.lock.acquire_write()
         if self.indices[column].has_key(value):
             self.indices[column].get(value).append(rid)
         else:
             self.indices[column][value] = [rid]
+        self.lock.release_write()
 
     def create_index(self, column_number):
         ''' Create index on specific column '''
         # print(f"Creating index on column number {column_number}")
+        self.lock.acquire_write()
         if not self.has_index(column_number):
             self.indices[column_number] = IOBTree.IOBTree()
             col_selection = [0]*self.table.num_columns
@@ -82,8 +96,10 @@ class Index:
                 self.add_to_index(column_number, table_select_val, self.table.key_directory[key])
         else:
             print(f"Index already created for column {column_number}")
+        self.lock.release_write()
 
     def delete_record_from_index(self, key):
+        self.lock.acquire_write()
         key_record = self.table.select(key,[1]*self.table.num_columns)
         rid = self.table.key_directory[key]
         for col, val_to_remove in enumerate(key_record[0].columns):
@@ -92,7 +108,10 @@ class Index:
                     self.indices[col].get(val_to_remove).remove(rid)   
                 except ValueError:
                     print(f"Error: rid {rid} wasn't indexed under {val_to_remove}")
+        self.lock.release_write()
 
     def drop_index(self, column_number):
         ''' Drop index of specific column '''
-        self.indicies[column_number] = None
+        self.lock.acquire_write()
+        self.indices[column_number] = None
+        self.lock.release_write()
