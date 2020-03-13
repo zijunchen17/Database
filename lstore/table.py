@@ -4,6 +4,7 @@ from time import time
 from lstore.config import *
 from lstore.utils import *
 from lstore.lock import readWriteLock
+from queue import Queue
 import math
 import copy
 import threading
@@ -57,6 +58,7 @@ class Table:
         str_key_directory = key_directory
         self.key_directory = {int(c[0]):int(c[1]) for c in str_key_directory.items()}
         self.page_range_locks = {}
+        self.page_range_merge_queue = {}
         self.flag = False
 
         pass
@@ -118,10 +120,13 @@ class Table:
         if page_range_index not in self.page_range_locks:
             new_lock = readWriteLock()
             self.page_range_locks[page_range_index] = new_lock
+
+        if page_range_index not in self.page_range_merge_queue:
+            self.page_range_merge_queue[page_range_index] = (None, Queue(maxsize=0))
         
         while not self.page_range_locks[page_range_index].acquire_write():
             pass
-        
+
         base_page_index = get_base_page_index(base_rid)
         base_physical_page_offset = get_base_physical_offset(base_rid)
 
@@ -150,11 +155,13 @@ class Table:
         # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
         if not tail_page[RID_COLUMN].has_capacity():
             # Trigger merge
-            print('triggered merge')
-            x = threading.Thread(target=self.__merge, args=(page_range_index, self.tail_page_index_directory[page_range_index]))
-            x.start()
+            self.page_range_merge_queue[page_range_index][1].put((page_range_index, tail_page_index))
+            if self.page_range_merge_queue[page_range_index][0] == None:
+                self.page_range_merge_queue[page_range_index] = (threading.Thread(target=self.__merge, args=(self.page_range_merge_queue[page_range_index][1],)), self.page_range_merge_queue[page_range_index][1])
+                self.page_range_merge_queue[page_range_index][0].daemon = True
+                self.page_range_merge_queue[page_range_index][0].start()
+
             self.tail_page_index_directory[page_range_index] += 1
-            # trigger merge
             tail_page_index = self.tail_page_index_directory[page_range_index]
         # Unpin the page we used to check if the latest tail page is full
         tail_page[RID_COLUMN].page_pin -= 1 
@@ -314,51 +321,51 @@ class Table:
             tps = base_page[BASE_TPS_COLUMN].read(base_physical_page_offset)
 
             # If tail_rid is from an update after the most recent merge (and a merge happened), traverse tails
-            # if tps > tail_rid:
+            if tps == 0 or tps > tail_rid:
 
-            base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
-            # page_range.print_page_range()
-            # print("base_rid", base_rid)
-            # print("fetched:",base_schema)
-            # if self.flag:
-            #     import pdb; pdb.set_trace()
-            # print("first schema:", base_schema)
-            base_schema = format(base_schema, f"0{self.num_columns}")
-            # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
+                base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
+                # page_range.print_page_range()
+                # print("base_rid", base_rid)
+                # print("fetched:",base_schema)
+                # if self.flag:
+                #     import pdb; pdb.set_trace()
+                # print("first schema:", base_schema)
+                base_schema = format(base_schema, f"0{self.num_columns}")
+                # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
 
-            # print(query_columns)
-            # print(base_schema)
-            # print(len(base_schema))
-            for i, col in enumerate(base_schema):
-                if col == '0' and query_columns[i] == 1:
-                    cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
-            while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
-                #print('key:', key , 'base_schema:', base_schema)
-                #print('hello')
-                tail_page_index = self.tail_page_directory[tail_rid][1]
-                tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
-                tail_page = [ _ for _ in range(self.all_columns)]
-                for column in range(self.all_columns):
-                    tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
+                # print(query_columns)
+                # print(base_schema)
+                # print(len(base_schema))
+                for i, col in enumerate(base_schema):
+                    if col == '0' and query_columns[i] == 1:
+                        cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+                while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
+                    #print('key:', key , 'base_schema:', base_schema)
+                    #print('hello')
+                    tail_page_index = self.tail_page_directory[tail_rid][1]
+                    tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
+                    tail_page = [ _ for _ in range(self.all_columns)]
+                    for column in range(self.all_columns):
+                        tail_page[column] = self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, column)
 
-                tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
-                tail_schema = str(tail_schema)
-                tail_schema = '0' * (self.num_columns - len(tail_schema)) + tail_schema
-                
+                    tail_schema = tail_page[SCHEMA_ENCODING_COLUMN].read(tail_physical_page_offset)
+                    tail_schema = str(tail_schema)
+                    tail_schema = '0' * (self.num_columns - len(tail_schema)) + tail_schema
+                    
 
-                for i, col in enumerate(tail_schema):
-                    if base_schema[i] == tail_schema[i] == '1' and query_columns[i] == 1:
-                        cur_columns[i] = tail_page[i+4].read(tail_physical_page_offset)
-                        base_schema = base_schema[:i] + '0' + base_schema[i+1:]
-                
-                tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
-                for column in tail_page:
-                    column.page_pin -= 1
+                    for i, col in enumerate(tail_schema):
+                        if base_schema[i] == tail_schema[i] == '1' and query_columns[i] == 1:
+                            cur_columns[i] = tail_page[i+4].read(tail_physical_page_offset)
+                            base_schema = base_schema[:i] + '0' + base_schema[i+1:]
+                    
+                    tail_rid = tail_page[INDIRECTION_COLUMN].read(tail_physical_page_offset)
+                    for column in tail_page:
+                        column.page_pin -= 1
             # Get information from base record since no update happened since merge
-            # else:
-            #     for i in range(0, self.num_columns):
-            #         if query_columns[i] == 1:
-            #                     cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
+            else:
+                for i in range(0, self.num_columns):
+                    if query_columns[i] == 1:
+                                cur_columns[i] = base_page[i+4].read(base_physical_page_offset)
 
             filtered_columns = filter(self.__remove_none, cur_columns)
             
@@ -482,44 +489,47 @@ class Table:
                         'tail_rid': self.tail_rid}
         return table_schema
 
-    def __merge(self, page_range_index, tail_page_index):
+    def __merge(self, queue):
+        while True:
+            tuple = queue.get(block=True)
+            page_range_index = tuple[0]
+            tail_page_index = tuple[1]
 
-        base_pages = [ [] for _ in range(self.all_columns)]
-        for i in range(BASE_PAGES_PER_RANGE):
+            base_pages = [ [] for _ in range(self.all_columns)]
+            for i in range(BASE_PAGES_PER_RANGE):
+                for j in range(self.all_columns):
+                    base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
+
+            tail_page = [ [] for _ in range(self.all_columns)]
+
             for j in range(self.all_columns):
-                base_pages[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'base', i, j, write=True))
+                tail_page[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j))
+            
+            bases_to_merge = base_pages
+            tails_to_merge = tail_page
+            
+            
+            base_copy = self.merge_in_process(bases_to_merge, tails_to_merge)
+            # Make sure no queries are runnign while original base pages are replaced with the merged copy
+            while not self.page_range_locks[page_range_index].acquire_write():
+                pass
 
-        tail_page = [ [] for _ in range(self.all_columns)]
+            # Replace contents of base page, with contents of the merged copy
+            for i in range(BASE_PAGES_PER_RANGE):
+                            for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
+                                base_pages[j][i].data = base_copy[j][i].data
 
-        for j in range(self.all_columns):
-            tail_page[j].append(self.bufferpool.get_physical_page(self, page_range_index, 'tail', tail_page_index, j))
-        
-        bases_to_merge = base_pages
-        tails_to_merge = tail_page
-        
-        
-        base_copy = self.merge_in_process(bases_to_merge, tails_to_merge)
-        print('grabbing merge lock')
-        # Make sure no queries are runnign while original base pages are replaced with the merged copy
-        while not self.page_range_locks[page_range_index].acquire_write():
-            pass
-        print("got merge lock")
-        # Replace contents of base page, with contents of the merged copy
-        for i in range(BASE_PAGES_PER_RANGE):
-                        for j in range(self.all_columns):
-                            base_pages[j][i].data = base_copy[j][i].data
+            self.page_range_locks[page_range_index].release_write()
 
-        self.page_range_locks[page_range_index].release_write()
-        print('merge complete')
-        # Unpin pages involved in merge
-        for i in range(BASE_PAGES_PER_RANGE):
-            for j in range(self.all_columns):
-                base_pages[j][i].page_pin -= 1
+            # Unpin pages involved in merge
+            for i in range(BASE_PAGES_PER_RANGE):
+                for j in range(self.all_columns):
+                    base_pages[j][i].page_pin -= 1
 
-        for column in tail_page:
-            column[0].page_pin -= 1
+            for column in tail_page:
+                column[0].page_pin -= 1
         
-        return
+        
 
     @staticmethod
     def _get_location_record(baserid_list, base_rid):

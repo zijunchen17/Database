@@ -17,7 +17,7 @@ records = {}
 
 seed(3562901)
 
-for i in range(0, 1000):
+for i in range(0, 9000):
     key = 92106429 + randint(0, 9000)
     while key in records:
         key = 92106429 + randint(0, 9000)
@@ -27,6 +27,7 @@ for i in range(0, 1000):
 
 # db.close()
 # db.open('~/ECS165')
+print('select start')
 
 for key in records:
     record = query.select(key, 0, [1, 1, 1, 1, 1])[0]
