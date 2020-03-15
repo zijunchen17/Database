@@ -7,6 +7,7 @@ from lstore.lock import *
 import math
 import copy
 import threading
+from lstore.logging_recovery import *
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -62,6 +63,8 @@ class Table:
         self.base_page_latches = {}
         self.tail_page_latches = {}
         self.tail_rid_lock = threading.Lock()
+
+        self.logging_history = logging_recovery()
 
     def insert(self, key_column, schema_encoding, timestamp, *columns):
         # TODO: Add locks after everything is done for multi-thread insertions
