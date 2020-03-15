@@ -34,10 +34,12 @@ for i in range(num_threads):
 q = Query(grades_table)
 for i in range(1000):  # Original amount
 # for i in range(10000): # 8 is 1 each
-    k = randint(0, 2000 - 1)
+    # k = randint(0, 2000 - 1)
+    k = randint(0, 200 - 1) ## test : do this for more transaction conflicts and rollbacks
     transaction = Transaction()
-    for j in range(5):
-        key = keys[k * 5 + j]
+    # for j in range(5):
+    for j in range(20): ## test: inside each transcation adding more queries
+        key = keys[k * 5 + j] 
         # q = Query(grades_table)  # Moved above for loop and consolidated
         transaction.add_query(q.select, key, 0, [1, 1, 1, 1, 1])
         # q = Query(grades_table)  # Moved above for loop and consolidated
@@ -63,7 +65,8 @@ query = Query(grades_table)
 s = query.sum(keys[0], keys[-1], 1)
 
 # if s != num_committed_transactions * 20:
-if s != num_committed_transactions * 5:
+if s != num_committed_transactions * 20:
+    # print('Expected sum:', num_committed_transactions * 20, ', actual:', s, '. Failed.')
     print('Expected sum:', num_committed_transactions * 20, ', actual:', s, '. Failed.')
     
 else:
