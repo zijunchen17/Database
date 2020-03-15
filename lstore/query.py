@@ -13,6 +13,7 @@ class Query:
         # self.index_lock = threading.Lock()
         # self.index_lock.acquire()
         self.index = Index(self.table)
+        self.incr_lock = threading.Lock()
         # self.index_lock.release()
         pass
 
@@ -91,9 +92,11 @@ class Query:
         # Returns True is increment is successful
         # Returns False if no record matches key or if target record is locked by 2PL.
         """
+        self.incr_lock.acquire()
         # r = self.select(key, self.table.key_index, [1] * self.table.num_columns)[0]
         select_res = self.select(key, self.table.key_index, [1] * self.table.num_columns)
         if not select_res:
+            self.incr_lock.release()
             return False
         r = select_res[0]
         if r is not False:
@@ -102,7 +105,9 @@ class Query:
             updated_columns[column] = r.columns[column] + 1
             # ^Parsoa said Mar 5 1013p that __getitem__ was overloaded
             u = self.update(key, *updated_columns)
+            self.incr_lock.release()
             return u
+        self.incr_lock.release()
         return False
 
     def print(self):
