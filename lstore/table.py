@@ -146,15 +146,16 @@ class Table:
 
             # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
             # new_tail_page = False
+
             if not tail_page[RID_COLUMN].has_capacity():
-                self.tail_page_latches[(page_range_index,tail_page_index)].release()
                 # prev_tail_page_index = tail_page_index
                 self.tail_page_index_directory[page_range_index] += 1
+                self.tail_page_latches[(page_range_index,tail_page_index)].release()
                 tail_page_index = self.tail_page_index_directory[page_range_index]
-
                 if not (page_range_index,tail_page_index) in self.tail_page_latches:
                     self.tail_page_latches[(page_range_index,tail_page_index)] = threading.Lock()
                 self.tail_page_latches[(page_range_index,tail_page_index)].acquire()
+                
             # Unpin the page we used to check if the latest tail page is full
             tail_page[RID_COLUMN].pinned = False 
 
@@ -225,9 +226,10 @@ class Table:
 
             for column in tail_page:
                 column.pinned = False
-
-            self.base_page_latches[(page_range_index,base_page_index)].release()
+            
             self.tail_page_latches[(page_range_index,tail_page_index)].release()
+            self.base_page_latches[(page_range_index,base_page_index)].release()
+            
             # if new_tail_page:
             #     self.tail_page_latches[(page_range_index,prev_tail_page_index)].release()
             # self.lock_manager[base_rid].release_write()
@@ -276,7 +278,7 @@ class Table:
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
 
-        """
+    """
     read a record with specified RID
     """
     def __read(self,rid,query_columns):
@@ -485,8 +487,8 @@ class Table:
             return False
 
     def sum(self, start_range, end_range, aggregate_column_index):
-        print("unique tail_rid updated:", len(self.tail_page_directory))
-        print("unique tail_val updated:", len(self.tail_page_directory.values()))
+        # print("unique tail_rid updated:", len(self.tail_page_directory))
+        # print("unique tail_val updated:", len(self.tail_page_directory.values()))
         # print("tail_page_dir:", [(c,v[-2:]) for (c,v) in self.tail_page_directory.items()])
         column_value = []
 

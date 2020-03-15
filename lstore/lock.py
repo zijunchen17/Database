@@ -28,7 +28,7 @@ class readWriteLock:
 
 	## acquire a write lock only when there is no shared lock on the record
 	def acquire_write(self):
-		if self._read_ready.acquire():
+		if self._read_ready.acquire(blocking=False):
 			if bool(self._reader):
 				self._read_ready.release()
 				return False
