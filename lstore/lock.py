@@ -16,7 +16,6 @@ class readWriteLock:
 				self._read_ready.release()
 			return True
 		else:
-			# print('too late')
 			return False
 
 	## release a read lock 
@@ -29,7 +28,7 @@ class readWriteLock:
 
 	## acquire a write lock only when there is no shared lock on the record
 	def acquire_write(self):
-		if self._read_ready.acquire(blocking=False):
+		if self._read_ready.acquire():
 			if bool(self._reader):
 				self._read_ready.release()
 				return False

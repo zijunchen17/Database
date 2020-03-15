@@ -18,7 +18,7 @@ class Index:
         ''' Returns the RIDs of all records with provided value in specified column. '''
         if not self.has_index(column):
             return -1
-        rids = self.indices[column].get(value)
+        rids = list(self.indices[column].get(value))
         return rids
 
     def locate_range(self, begin, end, column):
@@ -39,40 +39,29 @@ class Index:
     def update_record(self, columns, key):
         ''' Propagates table update into index '''
         rid = self.table.key_directory[key]
-        # print("columns:", columns, "key:", key)
-        
+
         for col_number, value in enumerate(columns):
             if value != None and self.has_index(col_number):
                 # Get before update value of column to be removed
                 col_selection = [0]*self.table.num_columns
-                # print("vroom")
                 col_selection[col_number] = 1
-                # table_select_val = self.table.select(key,col_selection)[0].columns[0]
-                # print("col_selection: ",col_selection)
                 table_select_val = self.table.select(key,col_selection)[0].columns[0]
-                # print("vroom2")
                 if table_select_val == SPECIAL_NULL_VALUE:
-                    # print("SUDOWOODO")
                     page_range = self.table.bufferpool.get_page_range(self.table,get_page_range_index(rid))
                     page_range.print_page_range()
-
                 # Remove rid from old column value's bucket
-                # print('hello0')
-                # print("tsv:",table_select_val,"rid:",rid)
                 self.indices[col_number].get(table_select_val).remove(rid)
-                # print('hello')
                 self.add_to_index(col_number,value,rid)
 
     def add_to_index(self, column, value, rid):
         ''' Add existing record to column index '''
         if self.indices[column].has_key(value):
-            self.indices[column].get(value).append(rid)
+            self.indices[column].get(value).add(rid)
         else:
-            self.indices[column][value] = [rid]
+            self.indices[column][value] = {rid}
 
     def create_index(self, column_number):
         ''' Create index on specific column '''
-        # print(f"Creating index on column number {column_number}")
         if not self.has_index(column_number):
             self.indices[column_number] = IOBTree.IOBTree()
             col_selection = [0]*self.table.num_columns
@@ -95,4 +84,4 @@ class Index:
 
     def drop_index(self, column_number):
         ''' Drop index of specific column '''
-        self.indicies[column_number] = None
+        self.indices[column_number] = None
