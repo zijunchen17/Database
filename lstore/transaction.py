@@ -7,7 +7,7 @@ class Transaction:
     """
     # Creates a transaction object.
     """
-    def __init__(self):
+    def __init__(self, transaction_id):
         self.queries = []
         self.write_query_locks = []
         
@@ -19,6 +19,8 @@ class Transaction:
         self.ROLLBACK_METHODS = ["increment", "update"]
         self.num_aborts = 0
         self.abort_lock = threading.Lock()
+
+        self.transaction_id = transaction_id
         pass
 
     def add_query(self, query, *args):
@@ -33,14 +35,31 @@ class Transaction:
 
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
+        start_temp  = 0
+        old_value = []
+
         for query, args in self.queries:
+            if start_temp == 0:
+                query.__self__.table.logging_history.transaction_start(self.transaction_id)
+                start_temp += 1
+            else:
+                pass
+
             method_name = query.__name__
-            if method_name in self.ROLLBACK_METHODS: # lol    
+            if method_name == 'select':
+                result = query(*args)
+                old_value.append(result)
+
+            if method_name in self.ROLLBACK_METHODS: # lol
+                transaction_id = self.transaction_id
+                query.__self__.table.logging_history.transaction_change(transaction_id, method_name, args,
+                                                                        old_value=old_value[-1][0])
                 rid = query.__self__.table.key_directory[args[0]]
                 base_schema = query.__self__.table.get_base_schema(rid)
                 lock = query.__self__.table.lock_manager[rid]
+                result = query(*args)
 
-            result = query(*args)
+            # result = query(*args)
 
             if method_name in self.ROLLBACK_METHODS and result != False:
                 self.write_methods.append(method_name)
@@ -51,8 +70,10 @@ class Transaction:
             # If the query has failed the transaction should abort
             # if result == False:
             if result == False and method_name in self.ROLLBACK_METHODS:  # If query couldn't acquire key
+                query.__self__.table.logging_history.transaction_abort(self.transaction_id)
                 return self.abort(query.__self__.table)
             # Successfully acquired lock. Note.
+        query.__self__.table.logging_history.transaction_abort(self.transaction_id)
         return self.commit()
 
     def abort(self, table):
