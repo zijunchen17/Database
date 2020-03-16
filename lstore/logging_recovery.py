@@ -5,7 +5,7 @@ class logging_recovery:
 
     def __init__(self):
         self.logger = logging.getLogger('transaction history')
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(filename = 'logging_history.log', level=logging.INFO)
         self.f_handler = logging.FileHandler('logging_history.log')
         # self.f_format = logging.Formatter('%(asctime)s - %(message)s')
         self.f_format = logging.Formatter('%(message)s')
