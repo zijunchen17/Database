@@ -58,12 +58,4 @@ class Page:
         self.data[row * self.record_size:(row+1) * self.record_size] = b_value
 
 
-    # def load_data(self,data):
-    #   self.data = data
-    #   if self.data.index(b'\x00'):
-    #     self.num_records = self.data.index(b'\x00\x00\x00')
-    #   else:
-    #     self.num_records = 512
-
-
 

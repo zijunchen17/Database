@@ -40,18 +40,3 @@ class readWriteLock:
 	## release the write lock
 	def release_write(self):
 		self._read_ready.release()
-
-
-if __name__ == '__main__':
-
-	rw1 = readWriteLock()
-	rw2 = readWriteLock()
-	print(rw1.acquire_read())
-	print(rw1.release_read())
-	print(rw1.acquire_write())
-	print(rw1.acquire_write())
-	print("-----------------------")
-	print(rw2.acquire_write())
-	print(rw2.acquire_write())
-
-

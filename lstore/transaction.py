@@ -66,8 +66,6 @@ class Transaction:
                 lock = query.__self__.table.lock_manager[rid]
                 result = query(*args)
 
-            # result = query(*args)
-
             if method_name in self.ROLLBACK_METHODS and result != False:
                 self.write_methods.append(method_name)
                 self.write_rids.append(rid)
@@ -75,7 +73,6 @@ class Transaction:
                 self.write_query_locks.append(lock)
 
             # If the query has failed the transaction should abort
-            # if result == False:
             if result == False and method_name in self.ROLLBACK_METHODS:  # If query couldn't acquire key
                 query.__self__.table.logging_history.transaction_abort(self.transaction_id)
                 return self.abort(query.__self__.table)
@@ -87,8 +84,6 @@ class Transaction:
         self.abort_lock.acquire()
         self.num_aborts += 1
         self.abort_lock.release()
-        # print("base_rids", self.write_rids)
-        # print("methods", self.write_methods)
         if self.write_methods:
             for base_rid, original_schema, method_name in zip(self.write_rids, self.write_original_schemas, self.write_methods):
                 table.rollback(base_rid, original_schema, method_name)

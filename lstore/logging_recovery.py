@@ -30,6 +30,3 @@ class logging_recovery:
     def transaction_commit(self, transaction_id):
         with self.logger_lock:
             self.logger.info(f'transaction_id:{transaction_id}, Committed')
-
-# a = logging_recovery()
-# a.transaction_change(1, 'increment', 91665, [0,1,2,3,4], old_value = [1,2,3,4,5])

@@ -101,60 +101,6 @@ def _update_page_directory(table, range_index, file_offset):
     filepath = _get_filepath(table.name, range_index, BASE_PAGE_TYPE)
     table.page_dirtory[(range_index)] = filepath, file_offset
 
-# if __name__ == '__main__':
-
-# 	pages = [[Page() for _ in range(8)] for _ in range(9)]
-# 	temp1  = b'1111' * 1024
-# 	temp2 = b'2222' * 1024
-# 	temp3 = b'3333' * 1024
-# 	temp4  = b'4444' * 1024
-# 	temp5 = b'5555' * 1024
-# 	temp6 = b'6666' * 1024
-# 	temp7 = b'7777' * 1024
-# 	temp8 = b'8888' * 512 + b'\x00\x00'* 512
-# 	temps = [[temp1, temp2, temp3, temp4, temp5, temp6, temp7, temp8] for _ in range(9)]
-# 	for p in range(8):
-# 		for c in range(9):
-# 			# print("data in column" ,c , "page index is ", p)
-# 			# for i in range(512):
-# 			# 	pages[c][p].write(temps[c][p][i*8 : (i+1)*8],i)s
-# 			pages[c][p].data = temps[c][p]
-# 			pages[c][p].num_records = 111
-# 			# print(pages[c][p].data)
-# 			# print(temps[c][p])
-# 			# print(pages[c][p].data)
-
-
-
-# 	# print(len(pages[0]))
-# 	# tails = [[Page() for _ in range(3)] for _ in range(9)]
-# 	# temp6 = b'6666' * 1024
-# 	# temp7 = b'7777' * 1024
-# 	# temp8 = bytearray(4096)
-# 	# tempss = [[temp6, temp7, temp8] for _ in range(9)]
-# 	# for p in range(3):
-# 	# 	for c in range(9):
-# 	# 		tails[c][p].data = tempss[c][p]
-
-# 	# for p in range(3):
-# 	# 	for c in range(9):
-# 	# 		print("data in column" ,c , "page index is ", p)
-# 	# 		print(pages[c][p].data)
-
-# 	filename = _get_file_name('/Users/yatingge/ECS165/Grades', 3 , "base")
-# 	offset1 = write_basepages_to_file(pages, filename, 9, 0)
-
-# 	base_pages = read_basepages_from_file(filename, 9, offset1)
-# 	print(base_pages[8][7].num_records)
-
-
-	
-# 	# print(base_pages[8][7].data)
-
-# 	# filename2 = _get_file_name('/Users/yatingge/ECS165/Grades', 1 , "tail")
-# 	# write_tailpages_to_file(tails, filename2, 3, 9)
-# 	# tail_pages = read_tailpages_from_file(filename2, 3, 9)
-
 
 
 

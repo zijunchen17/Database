@@ -45,8 +45,7 @@ class Table:
         self.base_rid = base_rid
         self.tail_rid = tail_rid
         
-        self.tail_page_directory = tail_page_directory # tail_rid -> (page_range_index, page_index, tail_physical_offset)
-        str_tail_page_directory = self.tail_page_directory
+        str_tail_page_directory = tail_page_directory # tail_rid -> (page_range_index, page_index, tail_physical_offset)
         self.tail_page_directory = {int(c[0]):c[1] for c in str_tail_page_directory.items()}
 
         self.tail_page_index_directory = tail_page_index_directory # page_range_index -> latest_tail_page_index
@@ -67,7 +66,6 @@ class Table:
         self.logging_history = logging_recovery()
 
     def insert(self, key_column, schema_encoding, timestamp, *columns):
-        # TODO: Add locks after everything is done for multi-thread insertions
         rid = self.base_rid
         self.lock_manager[rid] = readWriteLock()
         self.base_rid += 1
@@ -93,10 +91,7 @@ class Table:
             base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4, write=True)
             base_page[i+4].write(column)
         
-        #self.page_directory[rid] = base_page
         self.key_directory[base_page[self.key_column].read(base_physical_page_offset)] = rid
-        
-        # self.lock_manager[rid] = readWriteLock()
         
         for column in base_page:
             column.pinned = False
@@ -112,8 +107,6 @@ class Table:
             page_range_index = get_page_range_index(base_rid)
             base_page_index = get_base_page_index(base_rid)
             
-            
-
             if not (page_range_index,base_page_index) in self.base_page_latches:
                 self.base_page_latches[(page_range_index,base_page_index)] = threading.Lock()
             self.base_page_latches[(page_range_index,base_page_index)].acquire()
@@ -128,7 +121,6 @@ class Table:
             base_page[SCHEMA_ENCODING_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, SCHEMA_ENCODING_COLUMN, write=True)
             base_page[BASE_TPS_COLUMN] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, self.all_columns - 1, write=True)
 
-            
             self.tail_rid_lock.acquire()
             tail_rid = self.tail_rid
             self.tail_rid -= 1
@@ -214,16 +206,6 @@ class Table:
             # Add tail page to page directory
             self.tail_page_directory[tail_rid] = (page_range_index, tail_page_index, tail_physical_page_offset,base_rid,tail_rid)
             
-            # if tail_page_index == NUM_TAILS_BEFORE_MERGE - 1 and tail_physical_page_offset == PAGE_SIZE // RECORD_SIZE - 1:
-            #     print('merge start')
-            #     #page_range.print_page_range()
-            #     page_range.merging = True
-            #     # print('tail page index:',tail_page_index, 'tail physical offset:', tail_physical_page_offset )
-            #     self.__merge(page_range)
-            #     # x = threading.Thread(target=self.__merge, args=(page_range,))
-            #     # x.start()
-            #     self.flag = True
-            
             for column in base_page:
                 column.pinned = False
 
@@ -233,16 +215,11 @@ class Table:
             self.tail_page_latches[(page_range_index,tail_page_index)].release()
             self.base_page_latches[(page_range_index,base_page_index)].release()
             
-            # if new_tail_page:
-            #     self.tail_page_latches[(page_range_index,prev_tail_page_index)].release()
-            # self.lock_manager[base_rid].release_write()
             return True
         else:
             return False
         
     def rollback(self, base_rid, original_schema, method):
-        # ty yating
-        # print("rollback the yacht")
 
         page_range_index = get_page_range_index(base_rid)
         base_page_index = get_base_page_index(base_rid)
@@ -281,10 +258,9 @@ class Table:
     def _get_row(self, rid):
         return rid & ((1 << self.bit_shift) - 1)
 
-    """
-    read a record with specified RID
-    """
+    
     def __read(self,rid,query_columns):
+        # read a record with specified RID
         row = self._get_row(rid)
         page_list = self.page_directory[rid]
         page_list = page_list[SCHEMA_ENCODING_COLUMN+1:]
@@ -302,13 +278,6 @@ class Table:
 
     ## select the record having the latest values
     def select(self, key, query_columns, rid_provided = False):
-        #rid is passed in instead from query select using index
-        # for j in range(0, PAGE_SIZE // RECORD_SIZE):
-        #     for k in range(table.all_columns):
-        #         physical_page = table.bufferpool.get_physical_page(table, 0, 'base', 0, k)
-        #         print(physical_page.read(j),end=' ')
-        #         physical_page.pinned = False
-        #     print('\n',end='')
 
         if key in self.key_directory or rid_provided:
             if not rid_provided:
@@ -322,7 +291,6 @@ class Table:
             base_physical_page_offset = get_base_physical_offset(base_rid)
 
             if not self.lock_manager[base_rid].acquire_read():
-                # print("no lock available")
                 return False            
             
             if not (page_range_index,base_page_index) in self.base_page_latches:
@@ -342,20 +310,11 @@ class Table:
                 base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
 
             base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
-            # page_range.print_page_range()
-            # print("base_rid", base_rid)
-            # print("fetched:",base_schema)
-            # if self.flag:
-            #     import pdb; pdb.set_trace()
-            # print("first schema:", base_schema)
             base_schema = format(base_schema, f"0{self.num_columns}")
             # base_schema = '0' * (self.num_columns - len(base_schema)) + base_schema
             
             cur_columns = [None] * self.num_columns
 
-            # print(query_columns)
-            # print(base_schema)
-            # print(len(base_schema))
             for i, col in enumerate(base_schema):
                 if col == '0' and query_columns[i] == 1:
                     # base_page[i+4] = self.bufferpool.get_physical_page(self, page_range_index, 'base', base_page_index, i+4)
@@ -364,14 +323,7 @@ class Table:
             # print("begin search through rids")
             tail_rid = base_page[INDIRECTION_COLUMN].read(base_physical_page_offset)
 
-            # while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0:
-            # tail_pages_accessed = False
             while int(base_schema,2) & int(''.join(str(col) for col in query_columns), 2) != 0 and tail_rid != 0:
-                # tail_pages_accessed = True
-                # print(tail_rid)
-                # print('key:', key , 'base_schema:', base_schema, 'cur_cols', cur_columns)
-                # print(base_schema)
-                # print("tail_rid", tail_rid, "base_schema", base_schema, "rid", base_rid)
                 tail_page_index = self.tail_page_directory[tail_rid][1]
                 tail_physical_page_offset = self.tail_page_directory[tail_rid][2]
                 
@@ -405,8 +357,6 @@ class Table:
                 column.pinned = False
 
             self.base_page_latches[(page_range_index,base_page_index)].release()
-            # if tail_pages_accessed:
-            #     self.tail_page_latches[tail_page_index].release()
             self.lock_manager[base_rid].release_read()
             
             return [Record(key, base_rid, cur_columns)]
@@ -424,8 +374,6 @@ class Table:
 
         base_schema = base_page[SCHEMA_ENCODING_COLUMN].read(base_physical_page_offset)
         return base_schema
-
-    
 
     def __remove_none(self, x):
         if x == None:
@@ -490,18 +438,11 @@ class Table:
             return False
 
     def sum(self, start_range, end_range, aggregate_column_index):
-        # print("unique tail_rid updated:", len(self.tail_page_directory))
-        # print("unique tail_val updated:", len(self.tail_page_directory.values()))
-        # print("tail_page_dir:", [(c,v[-2:]) for (c,v) in self.tail_page_directory.items()])
         column_value = []
-
         query_columns = [0] * self.num_columns
         query_columns[aggregate_column_index] = 1
-
         for key in range(start_range, end_range+1):
-
             if key in self.key_directory:
-                select_index = 0
                 record_list = self.select(key, query_columns)
                 record = record_list[0]
                 # print("key:", key, "record: ", record)

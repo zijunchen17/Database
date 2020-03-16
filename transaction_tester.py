@@ -36,9 +36,7 @@ for i in range(1000):
     transaction = Transaction()
     for j in range(5):
         key = keys[k * 5 + j]
-        # q = Query(grades_table)
         transaction.add_query(q.select, key, 0, [1, 1, 1, 1, 1])
-        # q = Query(grades_table)
         transaction.add_query(q.increment, key, 1)
     transaction_workers[i % num_threads].add_transaction(transaction)
 
