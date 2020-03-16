@@ -1,13 +1,17 @@
 from lstore.table import Table, Record
 from lstore.index import Index
 from lstore.query import Query
+import itertools
+
 import threading
 class Transaction:
+    # to generate transaction id
+    id_iter = itertools.count()
 
     """
     # Creates a transaction object.
     """
-    def __init__(self, transaction_id):
+    def __init__(self):
         self.queries = []
         self.write_query_locks = []
         
@@ -20,7 +24,7 @@ class Transaction:
         self.num_aborts = 0
         self.abort_lock = threading.Lock()
 
-        self.transaction_id = transaction_id
+        self.transaction_id = next(self.id_iter)
         pass
 
     def add_query(self, query, *args):
@@ -48,12 +52,15 @@ class Transaction:
             method_name = query.__name__
             if method_name == 'select':
                 result = query(*args)
+                if result == False:
+                    query.__self__.table.logging_history.transaction_abort(self.transaction_id)
+                    return self.abort(query.__self__.table)
                 old_value.append(result)
 
             if method_name in self.ROLLBACK_METHODS: # lol
                 transaction_id = self.transaction_id
-                query.__self__.table.logging_history.transaction_change(transaction_id, method_name, args,
-                                                                        old_value=old_value[-1][0])
+                original_value = old_value[-1][0]
+                query.__self__.table.logging_history.transaction_change(transaction_id, method_name, args, original_value)
                 rid = query.__self__.table.key_directory[args[0]]
                 base_schema = query.__self__.table.get_base_schema(rid)
                 lock = query.__self__.table.lock_manager[rid]
