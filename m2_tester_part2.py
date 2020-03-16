@@ -14,7 +14,7 @@ query = Query(grades_table)
 # # # repopulate with random data
 records = {}
 seed(3562901)
-for i in range(0, 100):
+for i in range(0, 1000):
     key = 92106429 + i
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
 keys = sorted(list(records.keys()))
@@ -55,7 +55,7 @@ for i in range(0, 100):
 print("Aggregate finished")
 
 # query.print()
-print(grades_table.tail_page_index_directory)
+
 #print_page_range(grades_table, 0)
 
 db.close()

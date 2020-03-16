@@ -77,6 +77,8 @@ for c in range(0, grades_table.num_columns):
 
 db.close()
 db.open('~/ECS165')
+grades_table = db.get_table('Grades')
+query = Query(grades_table)
 
 print_page_range(grades_table, 0)
 

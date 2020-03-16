@@ -162,7 +162,7 @@ class Table:
             # Trigger merge
             print('triggered merge')
             self.page_range_merge_queue[page_range_index][1].put((page_range_index, tail_page_index))
-
+            # self.__merge(page_range_index, tail_page_index)
             self.tail_page_index_directory[page_range_index] += 1
             tail_page_index = self.tail_page_index_directory[page_range_index]
         # Unpin the page we used to check if the latest tail page is full
@@ -520,8 +520,8 @@ class Table:
             # Replace contents of base page, with contents of the merged copy
             for i in range(BASE_PAGES_PER_RANGE):
                 for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
-                    if base_pages[RID_COLUMN][i].read(92) == 605:
-                        print('original', base_pages[j][i].read(2),'copy', base_copy[j][i].read(2))
+                    # if base_pages[RID_COLUMN][i].read(92) == 605:
+                    #     print('original', base_pages[j][i].read(2),'copy', base_copy[j][i].read(2))
                     base_pages[j][i].data = base_copy[j][i].data
 
             self.page_range_locks[page_range_index].release()
@@ -565,7 +565,7 @@ class Table:
                 updated_retrieved = self._latest_per_rid_per_col_per_tail(record_location, tails_one_col[i])
                 if updated_retrieved != SPECIAL_NULL_VALUE:
                     return updated_retrieved
-        return updated_retrieved
+        return updated_retrievedvi
 
     @staticmethod
     def schema_vector(base_schema, num_columns):
