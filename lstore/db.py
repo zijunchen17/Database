@@ -21,8 +21,8 @@ class Database():
 
     def close(self):
         for table in self.tables:
-            self._save_table_schema(table)
             self.bufferpool.close_cache()
+            self._save_table_schema(table)
         pass
 
     """

@@ -1,5 +1,6 @@
 from lstore.db import Database
 from lstore.query import Query
+from lstore.utils import print_page_range
 
 from random import choice, randint, sample, seed
 
@@ -12,7 +13,7 @@ query = Query(grades_table)
 
 records = {}
 seed(3562901)
-for i in range(0, 1000):
+for i in range(0, 200):
     key = 92106429 + i
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
@@ -64,5 +65,8 @@ print("Aggregate finished")
 
 #query.print()
 
+db.close()
+db.open('~/ECS165')
+print_page_range(grades_table, 0)
 db.close()
 

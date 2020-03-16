@@ -53,6 +53,9 @@ class Table:
         self.tail_page_directory = {int(c[0]):c[1] for c in str_tail_page_directory.items()}
 
         self.tail_page_index_directory = tail_page_index_directory # page_range_index -> latest_tail_page_index
+        str_tail_page_index_directory = self.tail_page_index_directory
+        self.tail_page_index_directory = {int(c[0]):c[1] for c in str_tail_page_index_directory.items()}
+
         self.key_directory = key_directory
 
         str_key_directory = key_directory
@@ -72,11 +75,10 @@ class Table:
         # Acquire a lock so merge doesn't swap original and copy base pages
         # while this query is running
         if page_range_index not in self.page_range_locks:
-            new_lock = readWriteLock()
+            new_lock = threading.Lock()
             self.page_range_locks[page_range_index] = new_lock
         
-        while not self.page_range_locks[page_range_index].acquire_write():
-            pass
+        self.page_range_locks[page_range_index].acquire(blocking=True)
 
         base_page_index = get_base_page_index(rid)
         base_physical_page_offset = get_base_physical_offset(rid)
@@ -106,7 +108,7 @@ class Table:
         for column in base_page:
             column.page_pin -= 1
         
-        self.page_range_locks[page_range_index].release_write()
+        self.page_range_locks[page_range_index].release()
 
 
     def update(self, key, timestamp, *columns):
@@ -118,14 +120,17 @@ class Table:
         # Acquire a lock so merge doesn't swap original and copy base pages
         # while this query is running
         if page_range_index not in self.page_range_locks:
-            new_lock = readWriteLock()
+            new_lock = threading.Lock()
             self.page_range_locks[page_range_index] = new_lock
 
         if page_range_index not in self.page_range_merge_queue:
-            self.page_range_merge_queue[page_range_index] = (None, Queue(maxsize=0))
+            new_merge_queue = Queue(maxsize=0)
+            new_merge_thread = threading.Thread(target=self.__merge, args=(new_merge_queue,))
+            new_merge_thread.daemon = True
+            self.page_range_merge_queue[page_range_index] = (new_merge_thread, new_merge_queue)
+            self.page_range_merge_queue[page_range_index][0].start()
         
-        while not self.page_range_locks[page_range_index].acquire_write():
-            pass
+        self.page_range_locks[page_range_index].acquire(blocking=True)
 
         base_page_index = get_base_page_index(base_rid)
         base_physical_page_offset = get_base_physical_offset(base_rid)
@@ -155,11 +160,8 @@ class Table:
         # Check if latest tail page is full, if it is, increment the latest tail page index to point to a newly allocated one
         if not tail_page[RID_COLUMN].has_capacity():
             # Trigger merge
+            print('triggered merge')
             self.page_range_merge_queue[page_range_index][1].put((page_range_index, tail_page_index))
-            if self.page_range_merge_queue[page_range_index][0] == None:
-                self.page_range_merge_queue[page_range_index] = (threading.Thread(target=self.__merge, args=(self.page_range_merge_queue[page_range_index][1],)), self.page_range_merge_queue[page_range_index][1])
-                self.page_range_merge_queue[page_range_index][0].daemon = True
-                self.page_range_merge_queue[page_range_index][0].start()
 
             self.tail_page_index_directory[page_range_index] += 1
             tail_page_index = self.tail_page_index_directory[page_range_index]
@@ -239,7 +241,7 @@ class Table:
         for column in tail_page:
             column.page_pin -= 1
 
-        self.page_range_locks[page_range_index].release_write()
+        self.page_range_locks[page_range_index].release()
 
 
   
@@ -295,11 +297,10 @@ class Table:
             # Acquire a lock so merge doesn't swap original and copy base pages
             # while this query is running
             if page_range_index not in self.page_range_locks:
-                new_lock = readWriteLock()
+                new_lock = threading.Lock()
                 self.page_range_locks[page_range_index] = new_lock
             
-            while not self.page_range_locks[page_range_index].acquire_write():
-                pass
+            self.page_range_locks[page_range_index].acquire(blocking=True)
 
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
@@ -376,7 +377,7 @@ class Table:
             for column in base_page:
                 column.page_pin -= 1
             
-            self.page_range_locks[page_range_index].release_write()
+            self.page_range_locks[page_range_index].release()
 
             return [Record(key, base_rid, cur_columns)]
         else:
@@ -414,11 +415,10 @@ class Table:
             # Acquire a lock so merge doesn't swap original and copy base pages
             # while this query is running
             if page_range_index not in self.page_range_locks:
-                new_lock = readWriteLock()
+                new_lock = threading.Lock()
                 self.page_range_locks[page_range_index] = new_lock
             
-            while not self.page_range_locks[page_range_index].acquire_write():
-                pass
+            self.page_range_locks[page_range_index].acquire(blocking=True)
 
             base_page_index = get_base_page_index(base_rid)
             base_physical_page_offset = get_base_physical_offset(base_rid)
@@ -453,7 +453,7 @@ class Table:
 
                 del self.tail_page_directory[tail_rid]
 
-            self.page_range_locks[page_range_index].release_write()
+            self.page_range_locks[page_range_index].release()
         else:
             print('Key {} does not exist!'.format(key))
 
@@ -491,7 +491,9 @@ class Table:
 
     def __merge(self, queue):
         while True:
+            print('next item in merge queue')
             tuple = queue.get(block=True)
+            
             page_range_index = tuple[0]
             tail_page_index = tuple[1]
 
@@ -511,16 +513,19 @@ class Table:
             
             base_copy = self.merge_in_process(bases_to_merge, tails_to_merge)
             # Make sure no queries are runnign while original base pages are replaced with the merged copy
-            while not self.page_range_locks[page_range_index].acquire_write():
-                pass
+            self.page_range_locks[page_range_index].acquire(blocking=True)
 
+            print(tuple)
+            print('merge start')
             # Replace contents of base page, with contents of the merged copy
             for i in range(BASE_PAGES_PER_RANGE):
-                            for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
-                                base_pages[j][i].data = base_copy[j][i].data
+                for j in range(SCHEMA_ENCODING_COLUMN + 1, self.all_columns):
+                    if base_pages[RID_COLUMN][i].read(92) == 605:
+                        print('original', base_pages[j][i].read(2),'copy', base_copy[j][i].read(2))
+                    base_pages[j][i].data = base_copy[j][i].data
 
-            self.page_range_locks[page_range_index].release_write()
-
+            self.page_range_locks[page_range_index].release()
+            print('merge finished')
             # Unpin pages involved in merge
             for i in range(BASE_PAGES_PER_RANGE):
                 for j in range(self.all_columns):
