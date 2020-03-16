@@ -3,6 +3,7 @@ from lstore.index import Index
 import threading
 from time import time
 
+
 class Query:
     """
     Creates a Query object that can perform different queries on the specified table 
@@ -61,6 +62,8 @@ class Query:
             selection_result = self.table.select(rid, query_columns, True)
             if selection_result:
                 output.extend(selection_result)
+            else:
+                return False
         # for rid in matching_rids:
             # self.table.lock_manager[rid].release_read()
          # Might need to move it up a bit.
